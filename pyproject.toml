@@ -4,12 +4,43 @@ version = "0.1.0"
 description = "MkDocs plugin from TechDocs Owl, renders AsyncAPI and OpenAPI specs into reference pages"
 readme = "README.md"
 license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.9"
+authors = [
+    { name = "Dima Patserkovskyi", email = "dmtwngtech@pm.me" },
+]
+keywords = [
+    "mkdocs",
+    "mkdocs-plugin",
+    "openapi",
+    "asyncapi",
+    "documentation",
+    "api-reference",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: MkDocs",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+]
 dependencies = [
     "mkdocs>=1.5",
     "PyYAML>=6.0",
     "Markdown>=3.4",
 ]
+
+[project.urls]
+Homepage = "https://github.com/techdocs-owl/mkdocs-owl-api"
+Repository = "https://github.com/techdocs-owl/mkdocs-owl-api"
+Issues = "https://github.com/techdocs-owl/mkdocs-owl-api/issues"
 
 [project.entry-points."mkdocs.plugins"]
 owl-api = "mkdocs_owl_api.plugin:OwlApiPlugin"
