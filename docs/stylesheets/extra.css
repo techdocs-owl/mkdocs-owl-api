@@ -1,0 +1,52 @@
+/* mkdocs-owl-api site branding
+ *
+ * Dark-green brand color, reused for links/accents. Space Grotesk headings
+ * over an Ubuntu body, both free Google Fonts (Space Grotesk: SIL OFL;
+ * Ubuntu: Ubuntu Font Licence). Mono is JetBrains Mono.
+ */
+
+/* Heading font (body sans + mono come from theme.font in mkdocs.yml). */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap");
+
+/* ---- Light mode ---------------------------------------------------- */
+[data-md-color-scheme="default"] {
+  --owl-green: #14532d;
+  --owl-green-light: #1b6b3a;
+  --owl-green-dark: #0d3b20;
+
+  --md-primary-fg-color: var(--owl-green);
+  --md-primary-fg-color--light: var(--owl-green-light);
+  --md-primary-fg-color--dark: var(--owl-green-dark);
+
+  /* Links reuse the brand green; accent is the hover/focus state. */
+  --md-typeset-a-color: var(--owl-green);
+  --md-accent-fg-color: #1b7a43;
+}
+
+/* ---- Dark mode ----------------------------------------------------- */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #14532d;
+  --md-primary-fg-color--light: #1b6b3a;
+  --md-primary-fg-color--dark: #0d3b20;
+
+  /* Brightened greens so links/accents stay legible on a dark surface. */
+  --md-typeset-a-color: #4ade80;
+  --md-accent-fg-color: #86efac;
+}
+
+/* ---- Typography ---------------------------------------------------- */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-header__title {
+  font-family: "Space Grotesk", "Ubuntu", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Tighten the big page title a touch, like editorial display type. */
+.md-typeset h1 {
+  font-weight: 700;
+  color: var(--md-default-fg-color);
+}
