@@ -17,7 +17,7 @@ plugins:
 ```
 
 Add a page with a `techdocs-owl-asyncapi:` or `techdocs-owl-openapi:`
-frontmatter key and an empty body — the plugin fills it in at build time.
+frontmatter key and an empty body - the plugin fills it in at build time.
 
 ```markdown
 ---
@@ -59,9 +59,9 @@ techdocs-owl-asyncapi:
 
 | Key | Type | Default | Effect |
 |---|---|---|---|
-| `spec` | string | — | **Required.** Path or URL to the spec file. |
+| `spec` | string | - | **Required.** Path or URL to the spec file. |
 | `title` | string | `info.title` | Page H1. |
-| `intro` | markdown | — | Shown between the title and metadata block. |
+| `intro` | markdown | - | Shown between the title and metadata block. |
 | `hide_version` | bool | `false` | Hide the version line. |
 | `hide_internal` | bool | `false` | Drop properties marked `x-internal-only: true`. |
 | `hide_bindings` | bool | `false` | Skip bindings on servers/channels/operations/messages. |
@@ -69,10 +69,10 @@ techdocs-owl-asyncapi:
 | `hide_security` | bool | `false` | Skip security admonitions. |
 | `hide_download_link` | bool | `false` | Hide the spec download link. |
 | `schema_depth` | int | `3` | Depth of dot-path flattening for nested object properties. |
-| `attachments` | list | — | Extra files to copy and list in the downloads table. |
+| `attachments` | list | - | Extra files to copy and list in the downloads table. |
 
 Renders, in order: info, Servers, Operations (operation-centric across
-both AsyncAPI versions), Messages, Schemas, Parameters, Traits — sections
+both AsyncAPI versions), Messages, Schemas, Parameters, Traits - sections
 absent from the spec are skipped.
 
 ## OpenAPI pages
@@ -85,14 +85,14 @@ techdocs-owl-openapi: https://petstore3.swagger.io/api/v3/openapi.json
 
 | Key | Type | Default | Effect |
 |---|---|---|---|
-| `spec` | string | — | **Required.** Path or URL to the spec file. |
+| `spec` | string | - | **Required.** Path or URL to the spec file. |
 | `title` | string | `info.title` | Page H1. |
-| `intro` | markdown | — | Shown between the title and metadata block. |
+| `intro` | markdown | - | Shown between the title and metadata block. |
 | `hide_version` | bool | `false` | Hide the version line. |
 | `hide_internal` | bool | `false` | Drop `x-internal-only` properties. |
 | `hide_download_link` | bool | `false` | Hide the spec download link. |
 | `schema_depth` | int | `3` | Depth of dot-path flattening for nested object properties. |
-| `attachments` | list | — | Extra files to copy and list in the downloads table. |
+| `attachments` | list | - | Extra files to copy and list in the downloads table. |
 
 Renders: info, Servers, endpoints grouped by tag (parameters, request
 body, responses, security), Schemas.
