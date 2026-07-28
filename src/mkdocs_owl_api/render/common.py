@@ -177,24 +177,72 @@ def _demote_headings(md: str, levels: int = 2) -> str:
     return "\n".join(out)
 
 
-def _format_type(prop: dict[str, Any]) -> str:
+_JSON_TYPE_NAMES: list[tuple[type, str]] = [
+    (bool, "boolean"),  # before int - bool is an int subclass
+    (int, "integer"),
+    (float, "number"),
+    (str, "string"),
+    (list, "array"),
+    (dict, "object"),
+]
+
+
+def _infer_enum_type(enum: Any) -> str | None:
+    """
+    An `enum` without a sibling `type` still has an obvious type - the one its
+    values share. Returns None when the values disagree or aren't recognisable.
+    """
+    if not isinstance(enum, list) or not enum:
+        return None
+
+    names: set[str] = set()
+    for value in enum:
+        if value is None:
+            names.add("null")
+            continue
+        for py_type, name in _JSON_TYPE_NAMES:
+            if isinstance(value, py_type):
+                names.add(name)
+                break
+        else:
+            return None
+
+    if not names:
+        return None
+    return " | ".join(sorted(names))
+
+
+def _format_type(prop: Any) -> str:
     """
     Render a property's type as a short, readable expression.
     """
+    if not isinstance(prop, dict):
+        return "any"
+
     if "$ref" in prop:
         return _ref_link(prop["$ref"])
 
+    # A lone `allOf` member is the usual way to attach a description to a `$ref`
+    # - the value conforms to that member, so it takes the member's type.
     all_of = prop.get("allOf")
-    if isinstance(all_of, list) and len(all_of) == 1:
-        return f"array of {_format_type(all_of[0])}"
+    if isinstance(all_of, list) and len(all_of) == 1 and not prop.get("type"):
+        return _format_type(all_of[0])
 
     t = prop.get("type")
     if isinstance(t, list):
         t = " | ".join(str(x) for x in t)
+    if not t:
+        t = _infer_enum_type(prop.get("enum"))
     fmt = prop.get("format")
 
     if t == "object" and "additionalProperties" in prop:
-        return f"map of string → {_format_type(prop['additionalProperties'])}"
+        # Doubles as a value schema and as a bool toggle for extra keys - only
+        # the schema form (and a bare `true`) describes a map.
+        extra = prop["additionalProperties"]
+        if isinstance(extra, dict):
+            return f"map of string → {_format_type(extra)}"
+        if extra is True:
+            return "map of string → any"
     if t == "array":
         return f"array of {_format_type(prop.get('items') or {})}"
     if t and fmt:
@@ -288,6 +336,26 @@ def _render_examples(examples: Any) -> str:
     return "\n".join(parts)
 
 
+def _property_name_html(path: str) -> str:
+    """
+    Render a flattened dot-path as plain text - ancestors dimmed, leaf bold -
+    so the leaf name stays legible at depth. The path is kept contiguous so
+    in-page search for the full `a.b.c` still matches.
+    """
+    prefix, sep, leaf = path.rpartition(".")
+    leaf_html = f'<span class="techdocs-owl-api-prop">{_html.escape(leaf)}</span>'
+    if not sep:
+        return leaf_html
+    # `<wbr>` after each dot: a break *opportunity*, so long paths wrap on
+    # segment boundaries instead of forcing the column wide. It contributes no
+    # characters, so the copied/searched text stays the plain path.
+    prefix_html = _html.escape(prefix + sep).replace(".", ".<wbr>")
+    return (
+        f'<span class="techdocs-owl-api-path">{prefix_html}</span>'
+        f"{leaf_html}"
+    )
+
+
 def _render_property_row(
     name: str,
     prop: dict[str, Any],
@@ -300,13 +368,14 @@ def _render_property_row(
     if required:
         flag_bits.insert(0, _pill("required", kind="required"))
 
-    name_md = f"`{name}`"
+    # Built as HTML rather than markdown: the path needs per-segment styling
+    # that inline markdown can't express.
+    name_html = _property_name_html(name)
     if flag_bits:
-        name_md += "<br>" + " ".join(flag_bits)
+        name_html += "<br>" + " ".join(flag_bits)
 
     desc_block = _build_description_block(prop)
 
-    name_html = _md_to_html(name_md, inline=True)
     type_html = _md_to_html(type_str, inline=True)
     desc_html = _md_to_html(desc_block) or "&mdash;"
 
@@ -316,6 +385,20 @@ def _render_property_row(
         f"<td>{type_html}</td>\n"
         f"<td>{desc_html}</td>\n"
         "</tr>"
+    )
+
+
+def _closed_object_note(schema: dict[str, Any]) -> str:
+    """
+    `additionalProperties: false` closes the object to unlisted keys - worth
+    stating outright, but as a dimmed aside rather than a constraint bullet.
+    """
+    if schema.get("additionalProperties") is not False:
+        return ""
+    return (
+        '<span class="techdocs-owl-api-note">'
+        "Additional properties are NOT allowed."
+        "</span>"
     )
 
 
@@ -364,6 +447,12 @@ def _build_description_block(prop: dict[str, Any]) -> str:
             parts.append("**Constraints**")
             parts.append("")
         parts.extend(rules)
+
+    note = _closed_object_note(prop)
+    if note:
+        if parts:
+            parts.append("")
+        parts.append(note)
 
     return "\n".join(parts).strip()
 
@@ -463,8 +552,15 @@ def _render_schema(
         parts.append(f"_Type:_ {_ref_link(schema['$ref'])}")
         return "\n".join(parts).strip()
 
+    note = _closed_object_note(schema)
+    if note:
+        parts.append(note)
+        parts.append("")
+
     t = schema.get("type")
     enum = schema.get("enum")
+    if not t:
+        t = _infer_enum_type(enum)
 
     base_props: dict[str, Any] = dict(schema.get("properties") or {})
     base_required: set[str] = set(schema.get("required") or [])

@@ -1,3 +1,19 @@
+/* Flattened property paths: ancestors dimmed, leaf bold, both in body text. */
+.techdocs-owl-api-path {
+  color: var(--md-default-fg-color--light, rgba(0, 0, 0, 0.54));
+  font-weight: 400;
+}
+
+.techdocs-owl-api-prop {
+  font-weight: 700;
+}
+
+/* Dimmed asides, e.g. the closed-object note on `additionalProperties: false`. */
+.techdocs-owl-api-note {
+  color: var(--md-default-fg-color--light, rgba(0, 0, 0, 0.54));
+  font-size: 0.9em;
+}
+
 .techdocs-owl-api-pill {
   display: inline-block;
   padding: 0.05em 0.55em;

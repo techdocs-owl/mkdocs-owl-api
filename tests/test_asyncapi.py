@@ -66,7 +66,7 @@ class TestAsyncAPI(unittest.TestCase):
         self.assertIn("**Message: cancelMsg**", md)
         self.assertNotIn("#### cancelMsg", md)
         self.assertIn("techdocs-owl-api-pill--contenttype", md)
-        self.assertIn("<code>id</code>", md)
+        self.assertIn('<span class="techdocs-owl-api-prop">id</span>', md)
 
     def test_messages_ref_link(self):
         md = _render_page(self.V2, {})

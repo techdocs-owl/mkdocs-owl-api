@@ -3,6 +3,8 @@
 MkDocs plugin that renders AsyncAPI and OpenAPI specs into reference pages
 at build time.
 
+Check out [documentation](https://techdocs-owl.github.io/mkdocs-owl-api/).
+
 ## Install
 
 ```bash
@@ -126,3 +128,24 @@ build.
 uv sync
 uv run pytest
 ```
+
+`uv sync` installs the project itself in editable mode, so `src/` edits
+take effect without reinstalling. Docs deps (`mkdocs-material`) come from
+the `dev` dependency group, which uv syncs by default.
+
+Build or serve the documentation site:
+
+```bash
+uv run mkdocs build       # -> site/
+uv run mkdocs serve       # http://127.0.0.1:8000, live reload
+```
+
+The example site is a separate mkdocs project:
+
+```bash
+uv run mkdocs serve -f example/mkdocs.yml
+```
+
+Don't pass `--strict` there: generated specs and attachments are written
+to the docs/site dir after mkdocs has finalized its file collection, so
+`--strict` flags them as "not found among documentation files".
