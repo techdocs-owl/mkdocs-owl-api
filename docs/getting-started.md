@@ -35,12 +35,6 @@ The spec reference can be a **local path** (relative to the page) or an **HTTP(S
 mkdocs build
 ```
 
-!!! warning "Don't use `--strict`"
-    The plugin writes spec JSON and attachments into the build directory
-    after MkDocs has finalized its file collection, so `mkdocs build
-    --strict` flags those generated assets as "not found among
-    documentation files." Build without `--strict`.
-
 ## Error handling
 
 Missing or unreadable specs, network failures, parse errors, and malformed

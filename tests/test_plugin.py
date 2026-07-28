@@ -84,7 +84,10 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
         site.mkdir(parents=True)
         (api / spec_name).write_text(spec_text, encoding="utf-8")
         page = _fake_page(meta, "api/demo.md", str(api / "demo.md"))
-        config = {"docs_dir": str(docs), "site_dir": str(site)}
+        config = SimpleNamespace(
+            site_dir=str(site), use_directory_urls=True,
+            plugins=SimpleNamespace(_current_plugin=None),
+        )
         return root, page, config
 
     ASYNC = (
@@ -112,15 +115,17 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
     def test_asyncapi_spec_written(self):
         plugin = _plugin()
         with tempfile.TemporaryDirectory() as t:
+            files = Files([])
             root, page, config = self._setup(
                 t, {"techdocs-owl-asyncapi": {"spec": "spec.yml"}}, self.ASYNC)
-            out = plugin.on_page_markdown("orig", page=page, config=config, files=[])
+            out = plugin.on_page_markdown("orig", page=page, config=config, files=files)
             self.assertIn("# E2E", out)
             self.assertIn("## Operations", out)
             self.assertNotIn("## Channels", out)
-            self.assertTrue((root / "docs/assets/techdocs-owl-api/demo.json").exists())
-            self.assertTrue((root / "site/assets/techdocs-owl-api/demo.json").exists())
             self.assertIn("Specification Source", out)
+            # the spec joins the build as a generated file, keeping --strict happy
+            self.assertIsNotNone(files.get_file_from_path("assets/techdocs-owl-api/demo.json"))
+            self.assertFalse((root / "docs/assets").exists())
 
     def test_openapi_render(self):
         plugin = _plugin()
@@ -131,7 +136,7 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             root, page, config = self._setup(
                 t, {"techdocs-owl-openapi": {"spec": "spec.json"}}, oas, spec_name="spec.json")
-            out = plugin.on_page_markdown("orig", page=page, config=config, files=[])
+            out = plugin.on_page_markdown("orig", page=page, config=config, files=Files([]))
             self.assertIn("# OAS", out)
             self.assertIn("`/p`", out)
 
@@ -139,7 +144,7 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
         plugin = _plugin()
         with tempfile.TemporaryDirectory() as t:
             root, page, config = self._setup(t, {"techdocs-owl-asyncapi": 123}, self.ASYNC)
-            out = plugin.on_page_markdown("orig", page=page, config=config, files=[])
+            out = plugin.on_page_markdown("orig", page=page, config=config, files=Files([]))
             self.assertIn('!!! danger "invalid frontmatter"', out)
 
     def test_render_missing_spec(self):
@@ -147,7 +152,7 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             root, page, config = self._setup(
                 t, {"techdocs-owl-asyncapi": {"spec": "nope.yml"}}, self.ASYNC)
-            out = plugin.on_page_markdown("orig", page=page, config=config, files=[])
+            out = plugin.on_page_markdown("orig", page=page, config=config, files=Files([]))
             self.assertIn("spec file not found", out)
 
     def test_config_defaults(self):
@@ -158,7 +163,7 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             root, page, config = self._setup(
                 t, {"techdocs-owl-asyncapi": {"spec": "spec.yml"}}, self.ASYNC)
-            out = plugin.on_page_markdown("orig", page=page, config=config, files=[])
+            out = plugin.on_page_markdown("orig", page=page, config=config, files=Files([]))
             self.assertNotIn("**Version:**", out)
 
 

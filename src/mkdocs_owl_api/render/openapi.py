@@ -164,7 +164,8 @@ def _render_openapi_page(
         parts.append(f"**Version:** `{version}`")
         parts.append("")
 
-    downloads = _render_downloads_table(spec_url, attachments or [], hide_download=hide_download)
+    downloads = _render_downloads_table(
+        spec_url, attachments or [], hide_download=hide_download, spec_type="OpenAPI")
     if downloads:
         parts.append(downloads)
 

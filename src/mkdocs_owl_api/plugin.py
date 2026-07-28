@@ -67,15 +67,15 @@ class OwlApiPlugin(BasePlugin[OwlApiConfig]):
 
         raw = (page.meta or {}).get(_ASYNCAPI_KEY)
         if raw is not None:
-            return self._render(raw, page, config, defaults, kind="asyncapi", key=_ASYNCAPI_KEY)
+            return self._render(raw, page, config, files, defaults, kind="asyncapi", key=_ASYNCAPI_KEY)
 
         raw = (page.meta or {}).get(_OPENAPI_KEY)
         if raw is not None:
-            return self._render(raw, page, config, defaults, kind="openapi", key=_OPENAPI_KEY)
+            return self._render(raw, page, config, files, defaults, kind="openapi", key=_OPENAPI_KEY)
 
         return markdown
 
-    def _render(self, raw, page, config, defaults, *, kind: str, key: str) -> str:
+    def _render(self, raw, page, config, files, defaults, *, kind: str, key: str) -> str:
         page_opts = _normalize_frontmatter(raw)
         if page_opts is None:
             return _error_page(
@@ -88,7 +88,7 @@ class OwlApiPlugin(BasePlugin[OwlApiConfig]):
         spec, error = _load_spec(opts["spec"], base)
         if error:
             return error
-        download_link = _save_spec(spec, page, config)
-        attachments = _save_attachments(opts, page, config)
+        download_link = _save_spec(spec, page, config, files)
+        attachments = _save_attachments(opts, page, config, files)
         renderer = _render_asyncapi_page if kind == "asyncapi" else _render_openapi_page
         return renderer(spec, opts, spec_url=download_link, attachments=attachments)

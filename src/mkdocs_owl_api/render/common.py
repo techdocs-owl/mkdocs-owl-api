@@ -676,26 +676,44 @@ def _render_security_inline(spec: dict[str, Any], entry: Any) -> str:
     )
 
 
+def _table_cell(text: Any) -> str:
+    """Flatten arbitrary (user-supplied) text so it can't break out of a table cell."""
+    return " ".join(str(text or "").split()).replace("|", "\\|")
+
+
+def _file_format(url: str) -> str:
+    """The format label for a download, taken from its file extension."""
+    filename = url.split("?")[0].rsplit("/", 1)[-1]
+    return filename.rpartition(".")[2].lower() or "unknown"
+
+
 def _render_downloads_table(
     spec_url: str,
     attachments: list[dict[str, Any]],
     *,
     hide_download: bool,
+    spec_type: str,
 ) -> str:
-    rows: list[str] = []
+    rows: list[tuple[str, str]] = []
     if spec_url and not hide_download:
-        rows.append(f":material-file-document: [Specification Source]({spec_url})")
+        rows.append((
+            f":material-file-document: [Specification Source]({spec_url})",
+            f"{spec_type} specification in {_file_format(spec_url)} format",
+        ))
     for att in attachments:
+        title = _table_cell(att.get("title"))
+        description = _table_cell(att.get("description"))
         if att.get("url"):
-            rows.append(f":material-file-document: [{att['title']}]({att['url']})")
+            rows.append((f":material-file-document: [{title}]({att['url']})", description))
         else:
-            rows.append(f":material-file-document: {att['title']} _(unavailable: {att.get('error')})_")
+            unavailable = f"_(unavailable: {_table_cell(att.get('error'))})_"
+            rows.append((f":material-file-document: {title} {unavailable}", description))
 
     if not rows:
         return ""
 
-    out = ["| Downloads |", "|---|"]
-    out.extend(f"| {r} |" for r in rows)
+    out = ["| Attachment | Description |", "|---|---|"]
+    out.extend(f"| {label} | {description} |" for label, description in rows)
     out.append("")
     return "\n".join(out)
 

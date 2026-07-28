@@ -71,7 +71,7 @@ techdocs-owl-asyncapi:
 | `hide_security` | bool | `false` | Skip security admonitions. |
 | `hide_download_link` | bool | `false` | Hide the spec download link. |
 | `schema_depth` | int | `3` | Depth of dot-path flattening for nested object properties. |
-| `attachments` | list | - | Extra files to copy and list in the downloads table. |
+| `attachments` | list | - | Extra files to copy and list in the attachments table. |
 
 Renders, in order: info, Servers, Operations (operation-centric across
 both AsyncAPI versions), Messages, Schemas, Parameters, Traits - sections
@@ -94,16 +94,19 @@ techdocs-owl-openapi: https://petstore3.swagger.io/api/v3/openapi.json
 | `hide_internal` | bool | `false` | Drop `x-internal-only` properties. |
 | `hide_download_link` | bool | `false` | Hide the spec download link. |
 | `schema_depth` | int | `3` | Depth of dot-path flattening for nested object properties. |
-| `attachments` | list | - | Extra files to copy and list in the downloads table. |
+| `attachments` | list | - | Extra files to copy and list in the attachments table. |
 
 Renders: info, Servers, endpoints grouped by tag (parameters, request
 body, responses, security), Schemas.
 
-## Downloads & attachments
+## Attachments
 
 The resolved spec (external `$ref`s inlined) is written to
-`assets/techdocs-owl-api/<page-slug>.json` and linked from a Downloads
-table. Add extra files (e.g. `.proto` schemas) with `attachments`:
+`assets/techdocs-owl-api/<page-slug>.json` and linked from a table with
+**Attachment** and **Description** columns. Its description is generated
+("AsyncAPI specification in json format"). Add extra files (e.g. `.proto`
+schemas) with `attachments`, each taking an optional `title` and
+`description`:
 
 ```markdown
 ---
@@ -112,6 +115,7 @@ techdocs-owl-asyncapi:
   attachments:
     - path: ../schemas/customer.proto
       title: Customer Protobuf Schema
+      description: Wire format for customer events
     - ../schemas/order.proto   # shorthand: path only, title = filename
 ---
 ```
@@ -145,7 +149,3 @@ The example site is a separate mkdocs project:
 ```bash
 uv run mkdocs serve -f example/mkdocs.yml
 ```
-
-Don't pass `--strict` there: generated specs and attachments are written
-to the docs/site dir after mkdocs has finalized its file collection, so
-`--strict` flags them as "not found among documentation files".

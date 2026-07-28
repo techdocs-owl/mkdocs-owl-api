@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from mkdocs.structure.files import File
 
 from .render.common import _error_page
 
@@ -159,30 +160,31 @@ def _read_bytes(src: str, base: Path) -> tuple[bytes | None, str | None]:
         return None, str(exc)
 
 
-def _save_spec(spec: dict[str, Any], page, config) -> str:
-    """Write the resolved spec to both docs/ and site/ {ASSET_DIR}/<slug>.json
+def _register(files, config, rel_path: str, content: str | bytes) -> None:
+    """Add `content` to the build as a generated file at {ASSET_DIR}/... .
+    """
+    existing = files.get_file_from_path(rel_path)
+    if existing is not None:
+        files.remove(existing)
+    files.append(File.generated(config, rel_path, content=content))
+
+
+def _save_spec(spec: dict[str, Any], page, config, files) -> str:
+    """Register the resolved spec as {ASSET_DIR}/<slug>.json
     and return the relative URL to the spec file from the page.
     """
     slug = Path(page.file.src_path).stem
     rel_spec = f"{ASSET_DIR}/{slug}.json"
-    content = json.dumps(spec, indent=2, default=str)
-
-    docs_out = Path(config["docs_dir"]) / rel_spec
-    docs_out.parent.mkdir(parents=True, exist_ok=True)
-    docs_out.write_text(content, encoding="utf-8")
-
-    site_out = Path(config["site_dir"]) / rel_spec
-    site_out.parent.mkdir(parents=True, exist_ok=True)
-    site_out.write_text(content, encoding="utf-8")
+    _register(files, config, rel_spec, json.dumps(spec, indent=2, default=str))
 
     page_dir = Path(page.file.src_path).parent
     up = "../" * len(page_dir.parts)
     return f"{up}{rel_spec}"
 
 
-def _save_attachments(opts: dict[str, Any], page, config) -> list[dict[str, Any]]:
-    """Read each attachment, copy it to {ASSET_DIR}/<slug>-<filename>,
-    and return a list of {title, url, error} dicts (url is None on failure).
+def _save_attachments(opts: dict[str, Any], page, config, files) -> list[dict[str, Any]]:
+    """Read each attachment, register it as {ASSET_DIR}/<slug>-<filename>,
+    and return a list of {title, description, url, error} dicts (url is None on failure).
     """
     raw = opts.get("attachments")
     if not isinstance(raw, list) or not raw:
@@ -196,9 +198,9 @@ def _save_attachments(opts: dict[str, Any], page, config) -> list[dict[str, Any]
     results: list[dict[str, Any]] = []
     for item in raw:
         if isinstance(item, str):
-            src, title = item, None
+            src, title, description = item, None, None
         elif isinstance(item, dict) and isinstance(item.get("path"), str):
-            src, title = item["path"], item.get("title")
+            src, title, description = item["path"], item.get("title"), item.get("description")
         else:
             continue
 
@@ -208,16 +210,15 @@ def _save_attachments(opts: dict[str, Any], page, config) -> list[dict[str, Any]
 
         content, err = _read_bytes(src, base)
         if err is not None:
-            results.append({"title": label, "url": None, "error": err})
+            results.append(
+                {"title": label, "description": description, "url": None, "error": err})
             continue
 
         out_name = f"{slug}-{filename}"
         rel_path = f"{ASSET_DIR}/{out_name}"
-        for root_key in ("docs_dir", "site_dir"):
-            out = Path(config[root_key]) / rel_path
-            out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_bytes(content)
+        _register(files, config, rel_path, content)
 
-        results.append({"title": label, "url": f"{up}{rel_path}", "error": None})
+        results.append(
+            {"title": label, "description": description, "url": f"{up}{rel_path}", "error": None})
 
     return results

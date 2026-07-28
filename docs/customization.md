@@ -72,19 +72,24 @@ techdocs-owl-openapi:
 | `hide_internal` | bool | `false` | Drop properties marked `x-internal-only: true`. |
 | `hide_download_link` | bool | `false` | Hide the spec download link. |
 | `schema_depth` | int | `3` | Depth of dot-path flattening for nested object properties. |
-| `attachments` | list | - | Extra files to copy and list in the downloads table. See [Attachments](#attachments). |
+| `attachments` | list | - | Extra files to copy and list in the attachments table. See [Attachments](#attachments). |
 
 # Attachments
 
 Specs rarely travel alone. Attachments let you ship companion files -
 Postman collections, client SDK bundles, `.proto` definitions, extra
 schemas - right next to the reference. Each one is copied into the build
-output and listed in the page's **Downloads** table alongside the spec
+output and listed in the page's attachments table alongside the spec
 source, so readers get everything from a single page.
 
 `attachments` is a list. Each entry is either a bare path/URL string, or
-a mapping with a `path:` and an optional `title:` (the link label -
-defaults to the file name):
+a mapping with a `path:` plus optional `title:` and `description:`:
+
+| Key | Type | Default | Effect |
+|---|---|---|---|
+| `path` | string | - | **Required.** Path or URL to the file. |
+| `title` | string | file name | Link label in the **Attachment** column. |
+| `description` | string | empty | Text for the **Description** column. |
 
 ```markdown
 ---
@@ -94,10 +99,26 @@ techdocs-owl-openapi:
     - ../specs/postman-collection.json
     - path: ../specs/types.proto
       title: Protobuf definitions
+      description: Wire format for the event payloads
     - path: https://example.com/sdk.zip
       title: Client SDK
+      description: Generated Python client, version 2.4
 ---
 ```
+
+That renders as:
+
+| Attachment | Description |
+|---|---|
+| :material-file-document: [Specification Source](#) | OpenAPI specification in json format |
+| :material-file-document: [postman-collection.json](#) | |
+| :material-file-document: [Protobuf definitions](#) | Wire format for the event payloads |
+| :material-file-document: [Client SDK](#) | Generated Python client, version 2.4 |
+
+The first row is the spec itself - its description is generated for you
+from the spec type and the file format, and the whole row disappears if
+you set `hide_download_link: true`. Attachment descriptions are optional;
+leave one out and the cell is simply blank.
 
 Paths are resolved relative to the page; URLs are fetched at build time.
 If a file can't be read, it's still listed but marked unavailable rather

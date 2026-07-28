@@ -1,0 +1,57 @@
+{
+  "description": "Example messages for the Streetlights Kafka API 1.0.0. Topic addresses are shown for streetlightId '1a2b3c'.",
+  "messages": [
+    {
+      "name": "lightMeasured",
+      "operation": "receiveLightMeasurement",
+      "action": "receive",
+      "topic": "smartylighting.streetlights.1.0.event.1a2b3c.lighting.measured",
+      "headers": {
+        "my-app-header": 42
+      },
+      "payload": {
+        "lumens": 918,
+        "sentAt": "2026-03-14T21:05:07Z"
+      }
+    },
+    {
+      "name": "turnOn",
+      "operation": "turnOn",
+      "action": "send",
+      "topic": "smartylighting.streetlights.1.0.action.1a2b3c.turn.on",
+      "headers": {
+        "my-app-header": 42
+      },
+      "payload": {
+        "command": "on",
+        "sentAt": "2026-03-14T21:05:12Z"
+      }
+    },
+    {
+      "name": "turnOff",
+      "operation": "turnOff",
+      "action": "send",
+      "topic": "smartylighting.streetlights.1.0.action.1a2b3c.turn.off",
+      "headers": {
+        "my-app-header": 7
+      },
+      "payload": {
+        "command": "off",
+        "sentAt": "2026-03-15T05:42:00Z"
+      }
+    },
+    {
+      "name": "dimLight",
+      "operation": "dimLight",
+      "action": "send",
+      "topic": "smartylighting.streetlights.1.0.action.1a2b3c.dim",
+      "headers": {
+        "my-app-header": 7
+      },
+      "payload": {
+        "percentage": 40,
+        "sentAt": "2026-03-15T04:30:00Z"
+      }
+    }
+  ]
+}

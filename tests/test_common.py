@@ -262,16 +262,46 @@ class TestDownloadsTable(unittest.TestCase):
     def test_downloads_attachments(self):
         out = common._render_downloads_table(
             "../assets/techdocs-owl-api/x.json",
-            [{"title": "Proto", "url": "../assets/techdocs-owl-api/x-a.proto", "error": None},
-             {"title": "Bad", "url": None, "error": "404 Not Found"}],
+            [{"title": "Proto", "description": "Payload schemas",
+              "url": "../assets/techdocs-owl-api/x-a.proto", "error": None},
+             {"title": "Bad", "description": None, "url": None, "error": "404 Not Found"}],
             hide_download=False,
+            spec_type="AsyncAPI",
         )
+        self.assertIn("| Attachment | Description |", out)
+        self.assertNotIn("| Downloads |", out)
         self.assertIn("Specification Source", out)
-        self.assertIn("[Proto]", out)
+        self.assertIn("AsyncAPI specification in json format", out)
+        self.assertIn("| :material-file-document: [Proto](../assets/techdocs-owl-api/x-a.proto)"
+                      " | Payload schemas |", out)
         self.assertIn("unavailable: 404 Not Found", out)
+        # every row keeps exactly two columns, even without a description
+        for line in out.splitlines()[2:]:
+            if line:
+                self.assertEqual(line.count("|"), 3, line)
+
+    def test_downloads_spec_type_openapi(self):
+        out = common._render_downloads_table(
+            "../assets/techdocs-owl-api/x.json", [],
+            hide_download=False, spec_type="OpenAPI",
+        )
+        self.assertIn("OpenAPI specification in json format", out)
+
+    def test_downloads_cell_escaping(self):
+        """A pipe in user-supplied text must not split the row into extra columns."""
+        out = common._render_downloads_table(
+            "", [{"title": "A | B", "description": "one | two\nthree", "url": "x.bin",
+                  "error": None}],
+            hide_download=False, spec_type="OpenAPI",
+        )
+        row = out.splitlines()[2]
+        self.assertEqual(row.count("|"), 3 + 2)  # 3 delimiters + 2 escaped
+        self.assertIn(r"A \| B", row)
+        self.assertIn(r"one \| two three", row)
 
     def test_downloads_hidden(self):
-        out = common._render_downloads_table("x.json", [], hide_download=True)
+        out = common._render_downloads_table(
+            "x.json", [], hide_download=True, spec_type="OpenAPI")
         self.assertEqual(out, "")
 
 
