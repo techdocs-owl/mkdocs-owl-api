@@ -91,8 +91,11 @@ class PageOptions:
         page_opts: dict[str, Any] | None = None,
     ) -> PageOptions:
         merged: dict[str, Any] = {**(defaults or {}), **(page_opts or {})}
+        kind = _as_str(merged.get("type")).lower()
+        if not kind:
+            raise ValueError("missing required `type:` option")
         return cls(
-            type=_as_str(merged.get("type")).lower(),
+            type=kind,
             spec=_as_str(merged.get("spec")),
             title=_as_str(merged.get("title")),
             intro=_as_str(merged.get("intro")),

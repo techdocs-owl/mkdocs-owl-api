@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 from mkdocs.structure.files import Files
 
-from mkdocs_owl_api.plugin import OwlApiConfig, OwlApiPlugin
+from mkdocs_owl_api.plugin import OwlApiConfig, OwlApiPlugin, _error_page
 
 
 def _fake_page(meta: dict, src_path: str, abs_src_path: str):
@@ -23,6 +23,13 @@ def _plugin() -> OwlApiPlugin:
     plugin = OwlApiPlugin()
     plugin.config = OwlApiConfig()
     return plugin
+
+
+class TestErrorPage(unittest.TestCase):
+    def test_error_page(self):
+        out = _error_page("spec parse error", "boom")
+        self.assertIn('!!! danger "spec parse error"', out)
+        self.assertIn("boom", out)
 
 
 class TestOwlApiConfig(unittest.TestCase):
@@ -163,32 +170,46 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
     def test_missing_spec_key_is_a_read_error(self):
         """No `spec:` leaves it empty, so the loader tries to read the page directory."""
         out = self._run({"techdocs-owl": {"type": "asyncapi"}})
-        self.assertIn('!!! danger "spec read error"', out)
+        self.assertIn('!!! danger "page failed to render"', out)
+        self.assertIn("spec read error", out)
 
-    def test_missing_type_raises(self):
-        """`type:` is unvalidated - the renderer lookup fails on the empty default."""
-        with self.assertRaises(KeyError):
-            self._run({"techdocs-owl": {"spec": "spec.yml"}})
+    def test_missing_type_is_an_error_page(self):
+        """PageOptions.resolve rejects a missing `type:`; on_page_markdown catches it."""
+        for meta in ({"spec": "spec.yml"}, {"type": "", "spec": "spec.yml"}):
+            with self.subTest(meta=meta):
+                out = self._run({"techdocs-owl": meta})
+                self.assertIn('!!! danger "page failed to render"', out)
+                self.assertIn("missing required `type:` option", out)
 
-    def test_unknown_type_raises(self):
-        """A typo in `type:` surfaces as a KeyError, not an error page."""
-        with self.assertRaises(KeyError):
-            self._run({"techdocs-owl": {"type": "openapo", "spec": "spec.yml"}})
+    def test_unknown_type_is_an_error_page(self):
+        """A typo in `type:` fails the renderer lookup, caught at the boundary."""
+        out = self._run({"techdocs-owl": {"type": "openapo", "spec": "spec.yml"}})
+        self.assertIn('!!! danger "page failed to render"', out)
+        self.assertIn("openapo", out)
 
-    def test_foreign_type_with_spec_raises(self):
-        """`techdocs-owl:` is shared, but a sibling plugin's type is no longer skipped."""
-        with self.assertRaises(KeyError):
-            self._run({"techdocs-owl": {"type": "javadoc", "spec": "spec.yml"}})
+    def test_foreign_type_with_spec_is_an_error_page(self):
+        """`techdocs-owl:` is shared, but a sibling plugin's type is not skipped."""
+        out = self._run({"techdocs-owl": {"type": "javadoc", "spec": "spec.yml"}})
+        self.assertIn('!!! danger "page failed to render"', out)
+        self.assertIn("javadoc", out)
 
     def test_foreign_type_without_spec_is_overwritten(self):
         """A sibling's page has no `spec:`, so owl-api replaces its body with an error."""
         out = self._run({"techdocs-owl": {"type": "javadoc", "artifact": "a:b:1"}})
-        self.assertIn('!!! danger "spec read error"', out)
+        self.assertIn('!!! danger "page failed to render"', out)
+        self.assertIn("spec read error", out)
 
-    def test_bare_string_form_raises(self):
+    def test_bare_string_form_is_an_error_page(self):
         """The short form is gone; a bare string cannot be merged into the options dict."""
-        with self.assertRaises(TypeError):
-            self._run({"techdocs-owl": "spec.yml"})
+        out = self._run({"techdocs-owl": "spec.yml"})
+        self.assertIn('!!! danger "page failed to render"', out)
+        self.assertIn("TypeError", out)
+
+    def test_failure_is_logged_as_warning(self):
+        """`mkdocs build --strict` counts WARNING records, so it must still fail."""
+        with self.assertLogs("mkdocs.plugins.mkdocs_owl_api", level="WARNING") as captured:
+            self._run({"techdocs-owl": {"type": "openapo", "spec": "spec.yml"}})
+        self.assertIn("failed to render", captured.output[0])
 
     def test_config_defaults(self):
         plugin = _plugin()

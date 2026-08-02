@@ -16,9 +16,12 @@ import yaml
 from mkdocs.structure.files import File
 
 from .options import Attachment
-from .render.common import _error_page
 
 ASSET_DIR = "assets/techdocs-owl-api"
+
+
+class SpecError(Exception):
+    """The spec could not be fetched, read or parsed."""
 
 
 def _fetch_and_parse(uri: str, cache: dict[str, Any]) -> Any:
@@ -97,10 +100,11 @@ def _resolve_external_refs(node: Any, base_uri: str, cache: dict[str, Any] | Non
                 _resolve_external_refs(item, base_uri, cache)
 
 
-def _load_spec(spec_ref: str, base: Path) -> tuple[dict[str, Any] | None, str | None]:
+def _load_spec(spec_ref: str, base: Path) -> dict[str, Any]:
     """
     Load and parse (JSON or YAML) an AsyncAPI/OpenAPI spec from a local path or HTTP(S) URL.
-    Returns (spec_dict, None) on success or (None, error_page_markdown) on failure.
+
+    Raises `SpecError` on any failure - `on_page_markdown` turns it into an error page.
     """
     is_url = spec_ref.startswith("http://") or spec_ref.startswith("https://")
 
@@ -109,17 +113,17 @@ def _load_spec(spec_ref: str, base: Path) -> tuple[dict[str, Any] | None, str | 
             with urllib.request.urlopen(spec_ref, timeout=30) as resp:
                 text = resp.read().decode("utf-8")
         except urllib.error.HTTPError as exc:
-            return None, _error_page("spec HTTP error", f"`{spec_ref}`: {exc.code} {exc.reason}")
+            raise SpecError(f"spec HTTP error: `{spec_ref}`: {exc.code} {exc.reason}") from exc
         except (urllib.error.URLError, OSError) as exc:
-            return None, _error_page("spec fetch error", f"`{spec_ref}`: {exc}")
+            raise SpecError(f"spec fetch error: `{spec_ref}`: {exc}") from exc
     else:
         spec_path = (base / spec_ref).resolve()
         try:
             text = spec_path.read_text(encoding="utf-8")
-        except FileNotFoundError:
-            return None, _error_page("spec file not found", f"`{spec_path}`")
+        except FileNotFoundError as exc:
+            raise SpecError(f"spec file not found: `{spec_path}`") from exc
         except OSError as exc:
-            return None, _error_page("spec read error", f"`{spec_path}`: {exc}")
+            raise SpecError(f"spec read error: `{spec_path}`: {exc}") from exc
 
     source_label = spec_ref if is_url else str(spec_path)
 
@@ -130,16 +134,16 @@ def _load_spec(spec_ref: str, base: Path) -> tuple[dict[str, Any] | None, str | 
         try:
             spec = yaml.safe_load(text)
         except yaml.YAMLError as exc:
-            return None, _error_page("spec parse error", f"`{source_label}`: {exc}")
+            raise SpecError(f"spec parse error: `{source_label}`: {exc}") from exc
 
     if spec is None:
-        return None, _error_page("spec file is empty", f"`{source_label}` contains no content.")
+        raise SpecError(f"spec file is empty: `{source_label}` contains no content.")
     if not isinstance(spec, dict):
-        return None, _error_page("unexpected spec content", f"`{source_label}` did not parse to a mapping.")
+        raise SpecError(f"unexpected spec content: `{source_label}` did not parse to a mapping.")
 
     _resolve_external_refs(spec, spec_ref if is_url else str(spec_path))
 
-    return spec, None
+    return spec
 
 
 def _read_bytes(src: str, base: Path) -> tuple[bytes | None, str | None]:

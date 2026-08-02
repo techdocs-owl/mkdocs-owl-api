@@ -245,13 +245,6 @@ class TestSchemaRendering(unittest.TestCase):
         self.assertIn("`x`", out)
 
 
-class TestErrorPage(unittest.TestCase):
-    def test_error_page(self):
-        out = common._error_page("spec parse error", "boom")
-        self.assertIn('!!! danger "spec parse error"', out)
-        self.assertIn("boom", out)
-
-
 class TestDownloadsTable(unittest.TestCase):
     def test_downloads_attachments(self):
         out = common._render_downloads_table(

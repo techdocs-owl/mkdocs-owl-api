@@ -704,11 +704,3 @@ def _render_downloads_table(
     out.extend(f"| {label} | {description} |" for label, description in rows)
     out.append("")
     return "\n".join(out)
-
-
-def _error_page(title: str, detail: str) -> str:
-    return (
-        "# AsyncAPI page failed to render\n\n"
-        f'!!! danger "{title}"\n'
-        f"    {detail}\n"
-    )

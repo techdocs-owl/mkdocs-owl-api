@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from mkdocs.structure.files import Files
 
 from mkdocs_owl_api import loader
+from mkdocs_owl_api.loader import SpecError
 from mkdocs_owl_api.options import Attachment
 
 
@@ -36,47 +37,45 @@ class TestLoadSpec(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             d = pathlib.Path(t)
             self._write(d, "s.yml", "asyncapi: '3.0.0'\ninfo:\n  title: X\n  version: '1'\n")
-            spec, err = loader._load_spec("s.yml", d)
-            self.assertIsNone(err)
+            spec = loader._load_spec("s.yml", d)
             self.assertEqual(spec["info"]["title"], "X")
 
     def test_valid_json(self):
         with tempfile.TemporaryDirectory() as t:
             d = pathlib.Path(t)
             self._write(d, "s.json", json.dumps({"openapi": "3.0.3", "info": {"title": "J"}}))
-            spec, err = loader._load_spec("s.json", d)
-            self.assertIsNone(err)
+            spec = loader._load_spec("s.json", d)
             self.assertEqual(spec["info"]["title"], "J")
 
     def test_not_found(self):
         with tempfile.TemporaryDirectory() as t:
-            spec, err = loader._load_spec("missing.yml", pathlib.Path(t))
-            self.assertIsNone(spec)
-            self.assertIn("spec file not found", err)
+            with self.assertRaises(SpecError) as ctx:
+                loader._load_spec("missing.yml", pathlib.Path(t))
+            self.assertIn("spec file not found", str(ctx.exception))
 
     def test_empty(self):
         with tempfile.TemporaryDirectory() as t:
             d = pathlib.Path(t)
             self._write(d, "e.yml", "")
-            spec, err = loader._load_spec("e.yml", d)
-            self.assertIsNone(spec)
-            self.assertIn("spec file is empty", err)
+            with self.assertRaises(SpecError) as ctx:
+                loader._load_spec("e.yml", d)
+            self.assertIn("spec file is empty", str(ctx.exception))
 
     def test_not_a_mapping(self):
         with tempfile.TemporaryDirectory() as t:
             d = pathlib.Path(t)
             self._write(d, "list.yml", "- a\n- b\n")
-            spec, err = loader._load_spec("list.yml", d)
-            self.assertIsNone(spec)
-            self.assertIn("unexpected spec content", err)
+            with self.assertRaises(SpecError) as ctx:
+                loader._load_spec("list.yml", d)
+            self.assertIn("unexpected spec content", str(ctx.exception))
 
     def test_parse_error(self):
         with tempfile.TemporaryDirectory() as t:
             d = pathlib.Path(t)
             self._write(d, "bad.yml", "a: b:\n  - : :\n::::\n")
-            spec, err = loader._load_spec("bad.yml", d)
-            self.assertIsNone(spec)
-            self.assertIn("spec parse error", err)
+            with self.assertRaises(SpecError) as ctx:
+                loader._load_spec("bad.yml", d)
+            self.assertIn("spec parse error", str(ctx.exception))
 
 
 class TestResolveExternalRefs(unittest.TestCase):

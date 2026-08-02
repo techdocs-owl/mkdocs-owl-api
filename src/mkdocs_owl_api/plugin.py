@@ -33,6 +33,20 @@ _RENDERERS: dict[str, Any] = {
 }
 
 
+def _error_page(title: str, detail: str) -> str:
+    """
+    Body shown in place of a reference when a page cannot be rendered.
+
+    The single place a failure becomes page content - everything below
+    `on_page_markdown` raises instead.
+    """
+    return (
+        "# AsyncAPI page failed to render\n\n"
+        f'!!! danger "{title}"\n'
+        f"    {detail}\n"
+    )
+
+
 class OwlApiConfig(Config):
     schema_depth = mkdocs_config_options.Type(int, default=site_default("schema_depth"))
     hide_internal = mkdocs_config_options.Type(bool, default=site_default("hide_internal"))
@@ -60,16 +74,23 @@ class OwlApiPlugin(BasePlugin[OwlApiConfig]):
         if raw is None:
             return markdown
 
-        page_options = PageOptions.resolve(dict(self.config), raw)
-        return self._render(page_options, page, config, files)
+        try:
+            page_options = PageOptions.resolve(dict(self.config), raw)
+            return self._render(page_options, page, config, files)
+        except Exception as exc:
+            # Keep one bad page from aborting the whole site. Logged at warning
+            # level so `mkdocs build --strict` still fails on it.
+            log.warning("failed to render '%s': %s", page.file.src_path, exc, exc_info=True)
+            return _error_page(
+                "page failed to render",
+                f"`{page.file.src_path}`: {type(exc).__name__}: {exc}",
+            )
 
     def _render(self, opts: PageOptions, page, config, files) -> str:
         base = Path(page.file.abs_src_path).resolve().parent
         log.info("found %s spec in page '%s' with url '%s'",
                  opts.type, page.file.src_path, opts.spec)
-        spec, error = _load_spec(opts.spec, base)
-        if error:
-            return error
+        spec = _load_spec(opts.spec, base)
         download_link = _save_spec(spec, page, config, files)
         attachments = _save_attachments(opts.attachments, page, config, files)
         renderer = _RENDERERS[opts.type]
