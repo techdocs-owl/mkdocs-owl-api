@@ -1,5 +1,6 @@
 ---
-techdocs-owl-asyncapi:
+techdocs-owl:
+  type: asyncapi
   spec: ../assets/streetlight-api.yml
   attachments:
     - path: ../assets/streetlight-sample-messages.json

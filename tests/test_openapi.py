@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import unittest
 
+from mkdocs_owl_api.options import PageOptions
 from mkdocs_owl_api.render.openapi import _render_openapi_page
 
 
@@ -49,7 +50,7 @@ class TestOpenAPI(unittest.TestCase):
     }
 
     def setUp(self):
-        self.md = _render_openapi_page(self.SPEC, {})
+        self.md = _render_openapi_page(self.SPEC, PageOptions())
 
     def test_servers_variables(self):
         self.assertIn("`{region}`", self.md)

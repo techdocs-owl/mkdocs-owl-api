@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..options import PageOptions
 from .common import (
     _anchor,
     _build_description_block,
@@ -18,7 +19,6 @@ from .common import (
     _render_downloads_table,
     _render_schema,
     _render_security_inline,
-    _schema_depth,
 )
 
 _HTTP_METHODS = ("get", "post", "put", "delete", "patch", "head", "options", "trace")
@@ -141,18 +141,14 @@ def _openapi_render_responses(responses: dict[str, Any], spec: dict[str, Any]) -
 
 def _render_openapi_page(
     spec: dict[str, Any],
-    opts: dict[str, Any],
+    opts: PageOptions,
     *,
     spec_url: str = "",
     attachments: list[dict[str, Any]] | None = None,
 ) -> str:
     info = spec.get("info") or {}
-    title = (opts.get("title") or info.get("title") or "API Reference").strip()
-    intro = (opts.get("intro") or "").strip()
-    hide_version = bool(opts.get("hide_version"))
-    hide_internal = bool(opts.get("hide_internal"))
-    hide_download = bool(opts.get("hide_download_link"))
-
+    title = (opts.title or info.get("title") or "API Reference").strip()
+    intro = opts.intro
     parts: list[str] = [f"# {title}", ""]
 
     if intro:
@@ -160,12 +156,12 @@ def _render_openapi_page(
         parts.append("")
 
     version = (info.get("version") or "").strip()
-    if version and not hide_version:
+    if version and not opts.hide_version:
         parts.append(f"**Version:** `{version}`")
         parts.append("")
 
     downloads = _render_downloads_table(
-        spec_url, attachments or [], hide_download=hide_download, spec_type="OpenAPI")
+        spec_url, attachments or [], hide_download=(opts.hide_download_link), spec_type="OpenAPI")
     if downloads:
         parts.append(downloads)
 
@@ -259,7 +255,7 @@ def _render_openapi_page(
                 if rb:
                     parts.append("**Request body**")
                     parts.append("")
-                    parts.append(_openapi_render_request_body(rb, spec, hide_internal=hide_internal))
+                    parts.append(_openapi_render_request_body(rb, spec, hide_internal=(opts.hide_internal)))
 
                 responses = op.get("responses") or {}
                 if responses:
@@ -277,7 +273,7 @@ def _render_openapi_page(
 
     schemas = (spec.get("components") or {}).get("schemas") or {}
     if schemas:
-        max_depth = _schema_depth(opts)
+        max_depth = opts.schema_depth
         parts.append("## Schemas")
         parts.append("")
         for sname, sch in schemas.items():
@@ -285,7 +281,7 @@ def _render_openapi_page(
                 continue
             parts.append(_heading(3, sname, anchor=_anchor("schemas", sname)))
             parts.append("")
-            parts.append(_render_schema(sch, hide_internal=hide_internal, max_depth=max_depth))
+            parts.append(_render_schema(sch, hide_internal=(opts.hide_internal), max_depth=max_depth))
             parts.append("")
 
     while parts and parts[-1] in ("", "---"):

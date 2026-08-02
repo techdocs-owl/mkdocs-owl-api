@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+from mkdocs_owl_api.options import PageOptions
 from mkdocs_owl_api.render.asyncapi import _render_page
 
 
@@ -52,40 +53,40 @@ class TestAsyncAPI(unittest.TestCase):
     }
 
     def test_operations_no_channels(self):
-        md = _render_page(self.V2, {})
+        md = _render_page(self.V2, PageOptions())
         self.assertIn("## Operations", md)
         self.assertNotIn("## Channels", md)
 
     def test_operations_channel_pill(self):
-        md = _render_page(self.V2, {})
+        md = _render_page(self.V2, PageOptions())
         self.assertIn("techdocs-owl-api-pill--action-subscribe", md)
         self.assertIn("**Channel:** `CANCEL`", md)
 
     def test_messages_inline_heading(self):
-        md = _render_page(self.V2, {})
+        md = _render_page(self.V2, PageOptions())
         self.assertIn("**Message: cancelMsg**", md)
         self.assertNotIn("#### cancelMsg", md)
         self.assertIn("techdocs-owl-api-pill--contenttype", md)
         self.assertIn('<span class="techdocs-owl-api-prop">id</span>', md)
 
     def test_messages_ref_link(self):
-        md = _render_page(self.V2, {})
+        md = _render_page(self.V2, PageOptions())
         self.assertIn("**Message:** [`order`](#messages-order)", md)
 
     def test_security_admonition(self):
-        md = _render_page(self.V2, {})
+        md = _render_page(self.V2, PageOptions())
         self.assertIn('!!! note ":material-security: Security: creds"', md)
         self.assertNotIn("??? note", md)
 
     def test_operations_deprecated(self):
-        md = _render_page(self.V3, {})
+        md = _render_page(self.V3, PageOptions())
         self.assertIn("## Operations", md)
         self.assertIn("techdocs-owl-api-pill--action-receive", md)
         self.assertIn("techdocs-owl-api-pill--deprecated", md)
         self.assertIn("**Channel:** `demo.orders`", md)
 
     def test_messages_payload(self):
-        md = _render_page(self.V2, {})
+        md = _render_page(self.V2, PageOptions())
         i = md.find("## Messages")
         self.assertNotIn("_inline schema_", md[i:])
 
@@ -99,7 +100,7 @@ class TestAsyncAPI(unittest.TestCase):
             "components": {"operationTraits": {"t": {
                 "bindings": {"kafka": {"clientId": "c"}}}}},
         }
-        md = _render_page(spec, {})
+        md = _render_page(spec, PageOptions())
         self.assertIn('!!! note "kafka bindings"', md)
         self.assertNotIn("??? note", md)
         ot = md.find("## Operation traits")

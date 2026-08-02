@@ -8,12 +8,14 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 import yaml
 from mkdocs.structure.files import File
 
+from .options import Attachment
 from .render.common import _error_page
 
 ASSET_DIR = "assets/techdocs-owl-api"
@@ -182,12 +184,16 @@ def _save_spec(spec: dict[str, Any], page, config, files) -> str:
     return f"{up}{rel_spec}"
 
 
-def _save_attachments(opts: dict[str, Any], page, config, files) -> list[dict[str, Any]]:
+def _save_attachments(
+    attachments: Sequence[Attachment], page, config, files,
+) -> list[dict[str, Any]]:
     """Read each attachment, register it as {ASSET_DIR}/<slug>-<filename>,
     and return a list of {title, description, url, error} dicts (url is None on failure).
+
+    Entries arrive already parsed as `Attachment`s, so shape handling lives in
+    `options`, not here.
     """
-    raw = opts.get("attachments")
-    if not isinstance(raw, list) or not raw:
+    if not attachments:
         return []
 
     base = Path(page.file.abs_src_path).resolve().parent
@@ -196,22 +202,16 @@ def _save_attachments(opts: dict[str, Any], page, config, files) -> list[dict[st
     up = "../" * len(page_dir.parts)
 
     results: list[dict[str, Any]] = []
-    for item in raw:
-        if isinstance(item, str):
-            src, title, description = item, None, None
-        elif isinstance(item, dict) and isinstance(item.get("path"), str):
-            src, title, description = item["path"], item.get("title"), item.get("description")
-        else:
-            continue
-
+    for item in attachments:
+        src = item.path
         is_url = src.startswith("http://") or src.startswith("https://")
         filename = src.split("?")[0].rsplit("/", 1)[-1] if is_url else Path(src).name
-        label = title or filename
+        label = item.title or filename
 
         content, err = _read_bytes(src, base)
         if err is not None:
             results.append(
-                {"title": label, "description": description, "url": None, "error": err})
+                {"title": label, "description": item.description, "url": None, "error": err})
             continue
 
         out_name = f"{slug}-{filename}"
@@ -219,6 +219,7 @@ def _save_attachments(opts: dict[str, Any], page, config, files) -> list[dict[st
         _register(files, config, rel_path, content)
 
         results.append(
-            {"title": label, "description": description, "url": f"{up}{rel_path}", "error": None})
+            {"title": label, "description": item.description,
+             "url": f"{up}{rel_path}", "error": None})
 
     return results

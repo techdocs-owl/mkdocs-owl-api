@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 from mkdocs.structure.files import Files
 
-from mkdocs_owl_api.plugin import OwlApiConfig, OwlApiPlugin, _normalize_frontmatter
+from mkdocs_owl_api.plugin import OwlApiConfig, OwlApiPlugin
 
 
 def _fake_page(meta: dict, src_path: str, abs_src_path: str):
@@ -23,23 +23,6 @@ def _plugin() -> OwlApiPlugin:
     plugin = OwlApiPlugin()
     plugin.config = OwlApiConfig()
     return plugin
-
-
-class TestNormalizeFrontmatter(unittest.TestCase):
-    def test_frontmatter_short_form(self):
-        self.assertEqual(_normalize_frontmatter("./spec.yml"), {"spec": "./spec.yml"})
-
-    def test_frontmatter_long_form(self):
-        cfg = _normalize_frontmatter({"spec": "a.yml", "title": "T", "schema_depth": 4})
-        self.assertEqual(cfg["spec"], "a.yml")
-        self.assertEqual(cfg["title"], "T")
-        self.assertEqual(cfg["schema_depth"], 4)
-
-    def test_frontmatter_invalid(self):
-        self.assertIsNone(_normalize_frontmatter(123))
-        self.assertIsNone(_normalize_frontmatter({"title": "no spec"}))
-        self.assertIsNone(_normalize_frontmatter({"spec": 5}))
-        self.assertIsNone(_normalize_frontmatter(None))
 
 
 class TestOwlApiConfig(unittest.TestCase):
@@ -117,7 +100,7 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             files = Files([])
             root, page, config = self._setup(
-                t, {"techdocs-owl-asyncapi": {"spec": "spec.yml"}}, self.ASYNC)
+                t, {"techdocs-owl": {"type": "asyncapi", "spec": "spec.yml"}}, self.ASYNC)
             out = plugin.on_page_markdown("orig", page=page, config=config, files=files)
             self.assertIn("# E2E", out)
             self.assertIn("## Operations", out)
@@ -135,25 +118,77 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
         })
         with tempfile.TemporaryDirectory() as t:
             root, page, config = self._setup(
-                t, {"techdocs-owl-openapi": {"spec": "spec.json"}}, oas, spec_name="spec.json")
+                t, {"techdocs-owl": {"type": "openapi", "spec": "spec.json"}}, oas, spec_name="spec.json")
             out = plugin.on_page_markdown("orig", page=page, config=config, files=Files([]))
             self.assertIn("# OAS", out)
             self.assertIn("`/p`", out)
 
-    def test_render_invalid_frontmatter(self):
-        plugin = _plugin()
-        with tempfile.TemporaryDirectory() as t:
-            root, page, config = self._setup(t, {"techdocs-owl-asyncapi": 123}, self.ASYNC)
-            out = plugin.on_page_markdown("orig", page=page, config=config, files=Files([]))
-            self.assertIn('!!! danger "invalid frontmatter"', out)
+    def test_non_string_spec_is_coerced_then_not_found(self):
+        """`spec:` is unvalidated - it is stringified, so the loader reports the miss."""
+        for spec in (123, ["a.yml"]):
+            with self.subTest(spec=spec):
+                out = self._run({"techdocs-owl": {"type": "asyncapi", "spec": spec}})
+                self.assertIn("spec file not found", out)
 
     def test_render_missing_spec(self):
         plugin = _plugin()
         with tempfile.TemporaryDirectory() as t:
             root, page, config = self._setup(
-                t, {"techdocs-owl-asyncapi": {"spec": "nope.yml"}}, self.ASYNC)
+                t, {"techdocs-owl": {"type": "asyncapi", "spec": "nope.yml"}}, self.ASYNC)
             out = plugin.on_page_markdown("orig", page=page, config=config, files=Files([]))
             self.assertIn("spec file not found", out)
+
+    def test_old_keys_no_longer_recognised(self):
+        plugin = _plugin()
+        with tempfile.TemporaryDirectory() as t:
+            root, page, config = self._setup(
+                t, {"techdocs-owl-asyncapi": {"spec": "spec.yml"}}, self.ASYNC)
+            out = plugin.on_page_markdown("orig", page=page, config=config, files=Files([]))
+            self.assertEqual(out, "orig")
+
+    def test_type_is_case_insensitive(self):
+        plugin = _plugin()
+        with tempfile.TemporaryDirectory() as t:
+            root, page, config = self._setup(
+                t, {"techdocs-owl": {"type": "AsyncAPI", "spec": "spec.yml"}}, self.ASYNC)
+            out = plugin.on_page_markdown("orig", page=page, config=config, files=Files([]))
+            self.assertIn("# E2E", out)
+
+    def _run(self, meta):
+        with tempfile.TemporaryDirectory() as t:
+            root, page, config = self._setup(t, meta, self.ASYNC)
+            return _plugin().on_page_markdown(
+                "orig", page=page, config=config, files=Files([]))
+
+    def test_missing_spec_key_is_a_read_error(self):
+        """No `spec:` leaves it empty, so the loader tries to read the page directory."""
+        out = self._run({"techdocs-owl": {"type": "asyncapi"}})
+        self.assertIn('!!! danger "spec read error"', out)
+
+    def test_missing_type_raises(self):
+        """`type:` is unvalidated - the renderer lookup fails on the empty default."""
+        with self.assertRaises(KeyError):
+            self._run({"techdocs-owl": {"spec": "spec.yml"}})
+
+    def test_unknown_type_raises(self):
+        """A typo in `type:` surfaces as a KeyError, not an error page."""
+        with self.assertRaises(KeyError):
+            self._run({"techdocs-owl": {"type": "openapo", "spec": "spec.yml"}})
+
+    def test_foreign_type_with_spec_raises(self):
+        """`techdocs-owl:` is shared, but a sibling plugin's type is no longer skipped."""
+        with self.assertRaises(KeyError):
+            self._run({"techdocs-owl": {"type": "javadoc", "spec": "spec.yml"}})
+
+    def test_foreign_type_without_spec_is_overwritten(self):
+        """A sibling's page has no `spec:`, so owl-api replaces its body with an error."""
+        out = self._run({"techdocs-owl": {"type": "javadoc", "artifact": "a:b:1"}})
+        self.assertIn('!!! danger "spec read error"', out)
+
+    def test_bare_string_form_raises(self):
+        """The short form is gone; a bare string cannot be merged into the options dict."""
+        with self.assertRaises(TypeError):
+            self._run({"techdocs-owl": "spec.yml"})
 
     def test_config_defaults(self):
         plugin = _plugin()
@@ -162,7 +197,7 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
         plugin.config.validate()
         with tempfile.TemporaryDirectory() as t:
             root, page, config = self._setup(
-                t, {"techdocs-owl-asyncapi": {"spec": "spec.yml"}}, self.ASYNC)
+                t, {"techdocs-owl": {"type": "asyncapi", "spec": "spec.yml"}}, self.ASYNC)
             out = plugin.on_page_markdown("orig", page=page, config=config, files=Files([]))
             self.assertNotIn("**Version:**", out)
 

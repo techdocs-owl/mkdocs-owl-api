@@ -264,18 +264,6 @@ def _flags(prop: dict[str, Any]) -> list[str]:
     return flags
 
 
-def _schema_depth(opts: dict[str, Any]) -> int:
-    """
-    How many levels deep inline object properties are flattened into the dot-path properties table.
-    Configurable via the `schema_depth` frontmatter key.
-    """
-    raw = opts.get("schema_depth", 3)
-    try:
-        return max(1, int(raw))
-    except (TypeError, ValueError):
-        return 3
-
-
 def _render_tags(tags: Any) -> str:
     if not isinstance(tags, list) or not tags:
         return ""

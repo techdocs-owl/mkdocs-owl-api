@@ -24,12 +24,6 @@ class TestHelpers(unittest.TestCase):
                          "[`Foo`](#schemas-foo)")
         self.assertIn("users-get", common._ref_link("#/paths/~1users/get"))
 
-    def test_schema_depth(self):
-        self.assertEqual(common._schema_depth({}), 3)
-        self.assertEqual(common._schema_depth({"schema_depth": 5}), 5)
-        self.assertEqual(common._schema_depth({"schema_depth": 0}), 1)
-        self.assertEqual(common._schema_depth({"schema_depth": "x"}), 3)
-
     def test_format_type(self):
         self.assertEqual(common._format_type({"type": "string", "format": "uuid"}),
                          "string (uuid)")

@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from mkdocs.structure.files import Files
 
 from mkdocs_owl_api import loader
+from mkdocs_owl_api.options import Attachment
 
 
 def _fake_page(src_path: str, abs_src_path: str):
@@ -143,11 +144,12 @@ class TestSaveAttachments(unittest.TestCase):
             page = _fake_page("api/demo.md", str(api / "demo.md"))
             config = _fake_config(root / "site")
             files = Files([])
-            opts = {"attachments": [
-                {"path": "schema.proto", "title": "Proto", "description": "Payload schemas"},
-                {"path": "missing.proto"},
-            ]}
-            results = loader._save_attachments(opts, page, config, files)
+            attachments = [
+                Attachment(path="schema.proto", title="Proto",
+                           description="Payload schemas"),
+                Attachment(path="missing.proto"),
+            ]
+            results = loader._save_attachments(attachments, page, config, files)
             self.assertEqual(results[0]["title"], "Proto")
             self.assertEqual(results[0]["description"], "Payload schemas")
             self.assertIsNotNone(results[0]["url"])
@@ -159,7 +161,7 @@ class TestSaveAttachments(unittest.TestCase):
 
             self.assertIsNone(results[1]["url"])
             self.assertIsNotNone(results[1]["error"])
-            self.assertIsNone(results[1]["description"])
+            self.assertEqual(results[1]["description"], "")
             self.assertIsNone(files.get_file_from_path("assets/techdocs-owl-api/demo-missing.proto"))
 
     def test_attachment_shorthand_has_no_description(self):
@@ -171,9 +173,10 @@ class TestSaveAttachments(unittest.TestCase):
             (api / "schema.proto").write_text("syntax=proto3;", encoding="utf-8")
             page = _fake_page("api/demo.md", str(api / "demo.md"))
             results = loader._save_attachments(
-                {"attachments": ["schema.proto"]}, page, _fake_config(root / "site"), Files([]))
+                [Attachment(path="schema.proto")], page,
+                _fake_config(root / "site"), Files([]))
             self.assertEqual(results[0]["title"], "schema.proto")
-            self.assertIsNone(results[0]["description"])
+            self.assertEqual(results[0]["description"], "")
 
 
 if __name__ == "__main__":

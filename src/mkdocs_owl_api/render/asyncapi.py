@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..options import PageOptions
 from .common import (
     _anchor,
     _demote_headings,
@@ -19,7 +20,6 @@ from .common import (
     _render_tags,
     _resolve_ref,
     _ref_link,
-    _schema_depth,
 )
 
 
@@ -60,13 +60,10 @@ def _render_info_extras(info: dict[str, Any]) -> str:
     return "\n".join(parts)
 
 
-def _render_servers(spec: dict[str, Any], opts: dict[str, Any]) -> str:
+def _render_servers(spec: dict[str, Any], opts: PageOptions) -> str:
     servers = spec.get("servers")
     if not isinstance(servers, dict) or not servers:
         return ""
-
-    hide_security = bool(opts.get("hide_security"))
-    hide_bindings = bool(opts.get("hide_bindings"))
 
     parts: list[str] = ["## Servers", ""]
     for sname, server in servers.items():
@@ -104,14 +101,14 @@ def _render_servers(spec: dict[str, Any], opts: dict[str, Any]) -> str:
             parts.append("")
 
         security = server.get("security") or []
-        if security and not hide_security:
+        if security and not opts.hide_security:
             for entry in security:
                 block = _render_security_inline(spec, entry)
                 if block:
                     parts.append(block)
                     parts.append("")
 
-        bindings = _render_bindings(server.get("bindings"), hide_bindings=hide_bindings)
+        bindings = _render_bindings(server.get("bindings"), hide_bindings=(opts.hide_bindings))
         if bindings:
             parts.append(bindings)
 
@@ -273,15 +270,10 @@ def _render_v2_operation(
     return "\n".join(parts)
 
 
-def _render_operations_v2(spec: dict[str, Any], opts: dict[str, Any]) -> str:
+def _render_operations_v2(spec: dict[str, Any], opts: PageOptions) -> str:
     channels = spec.get("channels")
     if not isinstance(channels, dict) or not channels:
         return ""
-
-    hide_internal = bool(opts.get("hide_internal"))
-    hide_bindings = bool(opts.get("hide_bindings"))
-    hide_traits = bool(opts.get("hide_traits"))
-    max_depth = _schema_depth(opts)
 
     parts: list[str] = ["## Operations", ""]
     emitted = False
@@ -297,10 +289,10 @@ def _render_operations_v2(spec: dict[str, Any], opts: dict[str, Any]) -> str:
                 action=action,
                 channel_name=cname,
                 channel=channel,
-                hide_internal=hide_internal,
-                hide_bindings=hide_bindings,
-                hide_traits=hide_traits,
-                max_depth=max_depth,
+                hide_internal=(opts.hide_internal),
+                hide_bindings=(opts.hide_bindings),
+                hide_traits=(opts.hide_traits),
+                max_depth=(opts.schema_depth),
             ))
             parts.append("")
             emitted = True
@@ -308,7 +300,7 @@ def _render_operations_v2(spec: dict[str, Any], opts: dict[str, Any]) -> str:
     return "\n".join(parts) if emitted else ""
 
 
-def _render_operations(spec: dict[str, Any], opts: dict[str, Any]) -> str:
+def _render_operations(spec: dict[str, Any], opts: PageOptions) -> str:
     """Render the `## Operations` section with one `### opName` per operation.
 
     AsyncAPI 3.0 has a top-level `operations` map, rendered as is.
@@ -317,9 +309,6 @@ def _render_operations(spec: dict[str, Any], opts: dict[str, Any]) -> str:
     ops = spec.get("operations")
     if not isinstance(ops, dict) or not ops:
         return _render_operations_v2(spec, opts)
-
-    hide_bindings = bool(opts.get("hide_bindings"))
-    hide_traits = bool(opts.get("hide_traits"))
 
     parts: list[str] = ["## Operations", ""]
     for oname, op in ops.items():
@@ -371,7 +360,7 @@ def _render_operations(spec: dict[str, Any], opts: dict[str, Any]) -> str:
             parts.append("")
 
         traits = op.get("traits") or []
-        if traits and not hide_traits:
+        if traits and not opts.hide_traits:
             parts.append("**Traits:**")
             parts.append("")
             for t in traits:
@@ -379,22 +368,17 @@ def _render_operations(spec: dict[str, Any], opts: dict[str, Any]) -> str:
                     parts.append(f"- {_ref_link(t['$ref'])}")
             parts.append("")
 
-        bindings = _render_bindings(op.get("bindings"), hide_bindings=hide_bindings)
+        bindings = _render_bindings(op.get("bindings"), hide_bindings=(opts.hide_bindings))
         if bindings:
             parts.append(bindings)
 
     return "\n".join(parts)
 
 
-def _render_messages(spec: dict[str, Any], opts: dict[str, Any]) -> str:
+def _render_messages(spec: dict[str, Any], opts: PageOptions) -> str:
     msgs = (spec.get("components") or {}).get("messages")
     if not isinstance(msgs, dict) or not msgs:
         return ""
-
-    hide_internal = bool(opts.get("hide_internal"))
-    hide_bindings = bool(opts.get("hide_bindings"))
-    hide_traits = bool(opts.get("hide_traits"))
-    max_depth = _schema_depth(opts)
 
     parts: list[str] = ["## Messages", ""]
     for mname, msg in msgs.items():
@@ -404,21 +388,18 @@ def _render_messages(spec: dict[str, Any], opts: dict[str, Any]) -> str:
         parts.append("")
         parts.append(_render_message(
             msg, name=mname,
-            hide_internal=hide_internal, hide_bindings=hide_bindings,
-            hide_traits=hide_traits, max_depth=max_depth, show_message_id=True,
+            hide_internal=(opts.hide_internal), hide_bindings=(opts.hide_bindings),
+            hide_traits=(opts.hide_traits), max_depth=(opts.schema_depth), show_message_id=True,
         ))
         parts.append("")
 
     return "\n".join(parts)
 
 
-def _render_schemas_section(spec: dict[str, Any], opts: dict[str, Any]) -> str:
+def _render_schemas_section(spec: dict[str, Any], opts: PageOptions) -> str:
     schemas = (spec.get("components") or {}).get("schemas")
     if not isinstance(schemas, dict) or not schemas:
         return ""
-
-    hide_internal = bool(opts.get("hide_internal"))
-    max_depth = _schema_depth(opts)
 
     parts: list[str] = ["## Schemas", ""]
     for sname, sch in schemas.items():
@@ -426,12 +407,12 @@ def _render_schemas_section(spec: dict[str, Any], opts: dict[str, Any]) -> str:
             continue
         parts.append(_heading(3, sname, anchor=_anchor("schemas", sname)))
         parts.append("")
-        parts.append(_render_schema(sch, hide_internal=hide_internal, max_depth=max_depth))
+        parts.append(_render_schema(sch, hide_internal=(opts.hide_internal), max_depth=(opts.schema_depth)))
         parts.append("")
     return "\n".join(parts)
 
 
-def _render_parameters(spec: dict[str, Any], opts: dict[str, Any]) -> str:
+def _render_parameters(spec: dict[str, Any], opts: PageOptions) -> str:
     params = (spec.get("components") or {}).get("parameters")
     if not isinstance(params, dict) or not params:
         return ""
@@ -466,19 +447,16 @@ def _render_parameters(spec: dict[str, Any], opts: dict[str, Any]) -> str:
 
 def _render_traits(
     spec: dict[str, Any],
-    opts: dict[str, Any],
+    opts: PageOptions,
     *,
     container: str,
     heading: str,
 ) -> str:
-    if bool(opts.get("hide_traits")):
+    if opts.hide_traits:
         return ""
     traits = (spec.get("components") or {}).get(container)
     if not isinstance(traits, dict) or not traits:
         return ""
-
-    hide_internal = bool(opts.get("hide_internal"))
-    max_depth = _schema_depth(opts)
 
     parts: list[str] = [f"## {heading}", ""]
     for tname, trait in traits.items():
@@ -501,7 +479,7 @@ def _render_traits(
         if isinstance(headers, dict):
             parts.append("**Headers**")
             parts.append("")
-            parts.append(_render_schema(headers, hide_internal=hide_internal, max_depth=max_depth))
+            parts.append(_render_schema(headers, hide_internal=(opts.hide_internal), max_depth=(opts.schema_depth)))
             parts.append("")
 
     return "\n".join(parts)
@@ -509,18 +487,15 @@ def _render_traits(
 
 def _render_page(
     spec: dict[str, Any],
-    opts: dict[str, Any],
+    opts: PageOptions,
     *,
     spec_url: str = "",
     attachments: list[dict[str, Any]] | None = None,
 ) -> str:
     """Render the full AsyncAPI page Markdown from a spec + page options."""
     info = spec.get("info") or {}
-    title = (opts.get("title") or info.get("title") or "API Reference").strip()
-    intro = (opts.get("intro") or "").strip()
-    hide_version = bool(opts.get("hide_version"))
-    hide_download = bool(opts.get("hide_download_link"))
-
+    title = (opts.title or info.get("title") or "API Reference").strip()
+    intro = opts.intro
     version = (info.get("version") or "").strip()
     description = (info.get("description") or "").strip()
 
@@ -530,12 +505,12 @@ def _render_page(
         parts.append(intro)
         parts.append("")
 
-    if version and not hide_version:
+    if version and not opts.hide_version:
         parts.append(f"**Version:** `{version}`")
         parts.append("")
 
     downloads = _render_downloads_table(
-        spec_url, attachments or [], hide_download=hide_download, spec_type="AsyncAPI")
+        spec_url, attachments or [], hide_download=(opts.hide_download_link), spec_type="AsyncAPI")
     if downloads:
         parts.append(downloads)
 

@@ -18,12 +18,14 @@ plugins:
   - owl-api
 ```
 
-Add a page with a `techdocs-owl-asyncapi:` or `techdocs-owl-openapi:`
-frontmatter key and an empty body - the plugin fills it in at build time.
+Add a page with a `techdocs-owl:` frontmatter key naming the spec `type:`
+and an empty body - the plugin fills it in at build time.
 
 ```markdown
 ---
-techdocs-owl-asyncapi: ../specs/asyncapi.yml
+techdocs-owl:
+  type: asyncapi
+  spec: ../specs/asyncapi.yml
 ---
 ```
 
@@ -51,7 +53,8 @@ Page frontmatter overrides these per-page.
 
 ```markdown
 ---
-techdocs-owl-asyncapi:
+techdocs-owl:
+  type: asyncapi
   spec: https://schema.example.com/my-service-asyncapi
   title: My Service Events
   intro: One-paragraph intro shown above the spec body.
@@ -61,6 +64,7 @@ techdocs-owl-asyncapi:
 
 | Key | Type | Default | Effect |
 |---|---|---|---|
+| `type` | string | - | **Required.** `openapi` or `asyncapi`. |
 | `spec` | string | - | **Required.** Path or URL to the spec file. |
 | `title` | string | `info.title` | Page H1. |
 | `intro` | markdown | - | Shown between the title and metadata block. |
@@ -81,12 +85,15 @@ absent from the spec are skipped.
 
 ```markdown
 ---
-techdocs-owl-openapi: https://petstore3.swagger.io/api/v3/openapi.json
+techdocs-owl:
+  type: openapi
+  spec: https://petstore3.swagger.io/api/v3/openapi.json
 ---
 ```
 
 | Key | Type | Default | Effect |
 |---|---|---|---|
+| `type` | string | - | **Required.** `openapi` or `asyncapi`. |
 | `spec` | string | - | **Required.** Path or URL to the spec file. |
 | `title` | string | `info.title` | Page H1. |
 | `intro` | markdown | - | Shown between the title and metadata block. |
@@ -110,7 +117,8 @@ schemas) with `attachments`, each taking an optional `title` and
 
 ```markdown
 ---
-techdocs-owl-asyncapi:
+techdocs-owl:
+  type: asyncapi
   spec: ../specs/asyncapi.yml
   attachments:
     - path: ../schemas/customer.proto
