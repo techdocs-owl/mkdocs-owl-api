@@ -149,18 +149,18 @@ class TestSaveAttachments(unittest.TestCase):
                 Attachment(path="missing.proto"),
             ]
             results = loader._save_attachments(attachments, page, config, files)
-            self.assertEqual(results[0]["title"], "Proto")
-            self.assertEqual(results[0]["description"], "Payload schemas")
-            self.assertIsNotNone(results[0]["url"])
+            self.assertEqual(results[0].title, "Proto")
+            self.assertEqual(results[0].description, "Payload schemas")
+            self.assertIsNotNone(results[0].url)
 
             generated = files.get_file_from_path("assets/techdocs-owl-api/demo-schema.proto")
             self.assertIsNotNone(generated)
             self.assertEqual(generated.content_bytes, b"syntax=proto3;")
             self.assertFalse((docs / "assets").exists())
 
-            self.assertIsNone(results[1]["url"])
-            self.assertIsNotNone(results[1]["error"])
-            self.assertEqual(results[1]["description"], "")
+            self.assertIsNone(results[1].url)
+            self.assertIsNotNone(results[1].error)
+            self.assertEqual(results[1].description, "")
             self.assertIsNone(files.get_file_from_path("assets/techdocs-owl-api/demo-missing.proto"))
 
     def test_attachment_shorthand_has_no_description(self):
@@ -174,8 +174,8 @@ class TestSaveAttachments(unittest.TestCase):
             results = loader._save_attachments(
                 [Attachment(path="schema.proto")], page,
                 _fake_config(root / "site"), Files([]))
-            self.assertEqual(results[0]["title"], "schema.proto")
-            self.assertEqual(results[0]["description"], "")
+            self.assertEqual(results[0].title, "schema.proto")
+            self.assertEqual(results[0].description, "")
 
 
 if __name__ == "__main__":

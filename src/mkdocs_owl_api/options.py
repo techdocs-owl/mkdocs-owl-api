@@ -64,9 +64,26 @@ def _as_attachments(value: Any) -> tuple[Attachment, ...]:
 
 @dataclass(frozen=True)
 class Attachment:
+    """An attachment as configured on the page, before it has been read."""
+
     path: str
     title: str = ""
     description: str = ""
+
+
+@dataclass(frozen=True)
+class ResolvedAttachment:
+    """
+    An attachment after the loader has read and registered it.
+
+    `url` is None exactly when `error` is set. Declared once here so the
+    renderers and the loader cannot drift on the shape.
+    """
+
+    title: str
+    description: str = ""
+    url: str | None = None
+    error: str | None = None
 
 
 @dataclass(frozen=True)

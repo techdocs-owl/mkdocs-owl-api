@@ -3,7 +3,13 @@ from __future__ import annotations
 import unittest
 
 from mkdocs_owl_api.options import PageOptions
-from mkdocs_owl_api.render.asyncapi import _render_page
+from mkdocs_owl_api.common.base import RenderContext
+from mkdocs_owl_api.asyncapi.page import AsyncApiPageBuilder
+
+
+def _render_page(spec, opts, **kwargs):
+    """Render a page the way the plugin does."""
+    return AsyncApiPageBuilder(RenderContext(spec=spec, options=opts, **kwargs)).build_page()
 
 
 class TestAsyncAPI(unittest.TestCase):

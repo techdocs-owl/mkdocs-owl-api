@@ -2,7 +2,39 @@ from __future__ import annotations
 
 import unittest
 
-from mkdocs_owl_api.render import common
+from mkdocs_owl_api.common import primitives as common
+from mkdocs_owl_api.common.base import RenderContext, join_blocks
+from mkdocs_owl_api.common.builders import (
+    AttachmentsBuilder,
+    SchemaBuilder,
+    SchemaTableBuilder,
+)
+from mkdocs_owl_api.options import PageOptions, ResolvedAttachment
+
+
+def _ctx(**opts):
+    return RenderContext(spec={}, options=PageOptions(type="", **opts))
+
+
+def _flatten_properties(properties, required, *, hide_internal, max_depth):
+    """The traversal, reached without going through HTML."""
+    ctx = _ctx(hide_internal=hide_internal, schema_depth=max_depth)
+    schema = {"properties": properties, "required": sorted(required)}
+    return SchemaTableBuilder(ctx, schema).rows()
+
+
+def _render_schema(schema, *, hide_internal, max_depth=3):
+    ctx = _ctx(hide_internal=hide_internal, schema_depth=max_depth)
+    return join_blocks(SchemaBuilder(ctx, schema).build())
+
+
+def _render_downloads_table(spec_url, attachments, *, hide_download, spec_type):
+    ctx = RenderContext(
+        spec={}, options=PageOptions(type="", hide_download_link=hide_download),
+        spec_url=spec_url, attachments=tuple(attachments),
+    )
+    blocks = AttachmentsBuilder(ctx, spec_type).build()
+    return blocks[0] if blocks else ""
 
 
 class TestHelpers(unittest.TestCase):
@@ -136,7 +168,7 @@ class TestSchemaRendering(unittest.TestCase):
     }
 
     def _names(self, depth):
-        rows = common._flatten_properties(
+        rows = _flatten_properties(
             self.NESTED["properties"], set(self.NESTED.get("required") or []),
             hide_internal=False, max_depth=depth,
         )
@@ -170,7 +202,7 @@ class TestSchemaRendering(unittest.TestCase):
                 "shown": {"type": "string"},
             }},
         }}
-        rows = common._flatten_properties(sch["properties"], set(),
+        rows = _flatten_properties(sch["properties"], set(),
                                           hide_internal=True, max_depth=5)
         names = [n for (n, _p, _r, _t) in rows]
         self.assertIn("pub", names)
@@ -185,7 +217,7 @@ class TestSchemaRendering(unittest.TestCase):
                       {"$ref": "#/components/schemas/B"}],
             "properties": {"id": {"type": "string"}},
         }
-        out = common._render_schema(sch, hide_internal=False)
+        out = _render_schema(sch, hide_internal=False)
         self.assertIn("**One of:**", out)
         self.assertIn("[`A`](#schemas-a)", out)
         self.assertIn("[`B`](#schemas-b)", out)
@@ -194,7 +226,7 @@ class TestSchemaRendering(unittest.TestCase):
         sch = {"type": "object",
                "allOf": [{"properties": {"a": {"type": "string"}}},
                          {"$ref": "#/components/schemas/Base"}]}
-        out = common._render_schema(sch, hide_internal=False)
+        out = _render_schema(sch, hide_internal=False)
         self.assertIn("**All of:**", out)
         self.assertIn("[`Base`](#schemas-base)", out)
         self.assertIn('<span class="techdocs-owl-api-prop">a</span>', out)
@@ -204,7 +236,7 @@ class TestSchemaRendering(unittest.TestCase):
                "properties": {
                    "wrapper": {"type": "object",
                                "properties": {"nodeId": {"type": "string"}}}}}
-        out = common._render_schema(sch, hide_internal=False)
+        out = _render_schema(sch, hide_internal=False)
         self.assertIn(
             '<span class="techdocs-owl-api-path">wrapper.<wbr></span>'
             '<span class="techdocs-owl-api-prop">nodeId</span>',
@@ -216,7 +248,7 @@ class TestSchemaRendering(unittest.TestCase):
                "properties": {"kind": {"type": "object",
                                        "additionalProperties": False,
                                        "description": "A thing."}}}
-        out = common._render_schema(sch, hide_internal=False)
+        out = _render_schema(sch, hide_internal=False)
         self.assertEqual(out.count("Additional properties are NOT allowed."), 2)
         self.assertIn('<span class="techdocs-owl-api-note">', out)
         # The note follows the description rather than replacing it.
@@ -226,11 +258,11 @@ class TestSchemaRendering(unittest.TestCase):
         for extra in ({}, {"additionalProperties": True},
                       {"additionalProperties": {"type": "string"}}):
             sch = {"type": "object", "properties": {"a": {"type": "string"}}, **extra}
-            out = common._render_schema(sch, hide_internal=False)
+            out = _render_schema(sch, hide_internal=False)
             self.assertNotIn("Additional properties are NOT allowed.", out)
 
     def test_schema_labels(self):
-        out = common._render_schema({"type": "object",
+        out = _render_schema({"type": "object",
                                      "properties": {"id": {"type": "string"}}},
                                     hide_internal=False)
         self.assertIn("_Type:_", out)
@@ -239,7 +271,7 @@ class TestSchemaRendering(unittest.TestCase):
         self.assertNotIn("**Properties**", out)
 
     def test_schema_enum(self):
-        out = common._render_schema({"type": "string", "enum": ["x", "y"]},
+        out = _render_schema({"type": "string", "enum": ["x", "y"]},
                                     hide_internal=False)
         self.assertIn("**Allowed values:**", out)
         self.assertIn("`x`", out)
@@ -247,11 +279,11 @@ class TestSchemaRendering(unittest.TestCase):
 
 class TestDownloadsTable(unittest.TestCase):
     def test_downloads_attachments(self):
-        out = common._render_downloads_table(
+        out = _render_downloads_table(
             "../assets/techdocs-owl-api/x.json",
-            [{"title": "Proto", "description": "Payload schemas",
-              "url": "../assets/techdocs-owl-api/x-a.proto", "error": None},
-             {"title": "Bad", "description": None, "url": None, "error": "404 Not Found"}],
+            [ResolvedAttachment(title="Proto", description="Payload schemas",
+                                url="../assets/techdocs-owl-api/x-a.proto"),
+             ResolvedAttachment(title="Bad", description=None, error="404 Not Found")],
             hide_download=False,
             spec_type="AsyncAPI",
         )
@@ -268,7 +300,7 @@ class TestDownloadsTable(unittest.TestCase):
                 self.assertEqual(line.count("|"), 3, line)
 
     def test_downloads_spec_type_openapi(self):
-        out = common._render_downloads_table(
+        out = _render_downloads_table(
             "../assets/techdocs-owl-api/x.json", [],
             hide_download=False, spec_type="OpenAPI",
         )
@@ -276,9 +308,9 @@ class TestDownloadsTable(unittest.TestCase):
 
     def test_downloads_cell_escaping(self):
         """A pipe in user-supplied text must not split the row into extra columns."""
-        out = common._render_downloads_table(
-            "", [{"title": "A | B", "description": "one | two\nthree", "url": "x.bin",
-                  "error": None}],
+        out = _render_downloads_table(
+            "", [ResolvedAttachment(title="A | B", description="one | two\nthree",
+                                    url="x.bin")],
             hide_download=False, spec_type="OpenAPI",
         )
         row = out.splitlines()[2]
@@ -287,7 +319,7 @@ class TestDownloadsTable(unittest.TestCase):
         self.assertIn(r"one \| two three", row)
 
     def test_downloads_hidden(self):
-        out = common._render_downloads_table(
+        out = _render_downloads_table(
             "x.json", [], hide_download=True, spec_type="OpenAPI")
         self.assertEqual(out, "")
 

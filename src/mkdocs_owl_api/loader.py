@@ -15,7 +15,7 @@ from typing import Any
 import yaml
 from mkdocs.structure.files import File
 
-from .options import Attachment
+from .options import Attachment, ResolvedAttachment
 
 ASSET_DIR = "assets/techdocs-owl-api"
 
@@ -190,9 +190,9 @@ def _save_spec(spec: dict[str, Any], page, config, files) -> str:
 
 def _save_attachments(
     attachments: Sequence[Attachment], page, config, files,
-) -> list[dict[str, Any]]:
+) -> list[ResolvedAttachment]:
     """Read each attachment, register it as {ASSET_DIR}/<slug>-<filename>,
-    and return a list of {title, description, url, error} dicts (url is None on failure).
+    and return one `ResolvedAttachment` each (url is None on failure).
 
     Entries arrive already parsed as `Attachment`s, so shape handling lives in
     `options`, not here.
@@ -205,7 +205,7 @@ def _save_attachments(
     page_dir = Path(page.file.src_path).parent
     up = "../" * len(page_dir.parts)
 
-    results: list[dict[str, Any]] = []
+    results: list[ResolvedAttachment] = []
     for item in attachments:
         src = item.path
         is_url = src.startswith("http://") or src.startswith("https://")
@@ -214,16 +214,15 @@ def _save_attachments(
 
         content, err = _read_bytes(src, base)
         if err is not None:
-            results.append(
-                {"title": label, "description": item.description, "url": None, "error": err})
+            results.append(ResolvedAttachment(
+                title=label, description=item.description, error=err))
             continue
 
         out_name = f"{slug}-{filename}"
         rel_path = f"{ASSET_DIR}/{out_name}"
         _register(files, config, rel_path, content)
 
-        results.append(
-            {"title": label, "description": item.description,
-             "url": f"{up}{rel_path}", "error": None})
+        results.append(ResolvedAttachment(
+            title=label, description=item.description, url=f"{up}{rel_path}"))
 
     return results

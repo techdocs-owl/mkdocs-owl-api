@@ -7,17 +7,17 @@ Renders OpenApi/AsyncApi specification in md.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from mkdocs.config import config_options as mkdocs_config_options
 from mkdocs.config.base import Config
 from mkdocs.plugins import BasePlugin, get_plugin_logger
 from mkdocs.structure.files import File
 
+from .asyncapi.page import AsyncApiPageBuilder
+from .common.base import PageBuilder, RenderContext
 from .loader import _load_spec, _save_attachments, _save_spec
+from .openapi.page import OpenApiPageBuilder
 from .options import PageOptions, site_default
-from .render.asyncapi import _render_page as _render_asyncapi_page
-from .render.openapi import _render_openapi_page
 
 log = get_plugin_logger(__name__)
 
@@ -27,9 +27,11 @@ _CSS_SRC_URI = f"assets/{_CSS_FILENAME}"
 
 _FRONTMATTER_KEY = "techdocs-owl"
 
-_RENDERERS: dict[str, Any] = {
-    "openapi": _render_openapi_page,
-    "asyncapi": _render_asyncapi_page,
+#: `type:` -> page builder. The dispatch seam a sibling `techdocs-owl-*` plugin
+#: relies on: a `type:` this plugin does not own must pass through untouched.
+_RENDERERS: dict[str, type[PageBuilder]] = {
+    "openapi": OpenApiPageBuilder,
+    "asyncapi": AsyncApiPageBuilder,
 }
 
 
@@ -41,7 +43,7 @@ def _error_page(title: str, detail: str) -> str:
     `on_page_markdown` raises instead.
     """
     return (
-        "# AsyncAPI page failed to render\n\n"
+        "# API reference failed to render\n\n"
         f'!!! danger "{title}"\n'
         f"    {detail}\n"
     )
@@ -91,7 +93,17 @@ class OwlApiPlugin(BasePlugin[OwlApiConfig]):
         log.info("found %s spec in page '%s' with url '%s'",
                  opts.type, page.file.src_path, opts.spec)
         spec = _load_spec(opts.spec, base)
+
+        # Assets are registered here, before rendering, so that the builders
+        # receive resolved data and never touch mkdocs objects. mkdocs calls
+        # `page.render(config, files)` straight after `on_page_markdown`, so
+        # registration has to be complete by the time we return - see CLAUDE.md.
         download_link = _save_spec(spec, page, config, files)
         attachments = _save_attachments(opts.attachments, page, config, files)
-        renderer = _RENDERERS[opts.type]
-        return renderer(spec, opts, spec_url=download_link, attachments=attachments)
+
+        return _RENDERERS[opts.type](RenderContext(
+            spec=spec,
+            options=opts,
+            spec_url=download_link,
+            attachments=tuple(attachments),
+        )).build_page()

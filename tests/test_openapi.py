@@ -4,7 +4,13 @@ import re
 import unittest
 
 from mkdocs_owl_api.options import PageOptions
-from mkdocs_owl_api.render.openapi import _render_openapi_page
+from mkdocs_owl_api.common.base import RenderContext
+from mkdocs_owl_api.openapi.page import OpenApiPageBuilder
+
+
+def _render_openapi_page(spec, opts, **kwargs):
+    """Render a page the way the plugin does."""
+    return OpenApiPageBuilder(RenderContext(spec=spec, options=opts, **kwargs)).build_page()
 
 
 class TestOpenAPI(unittest.TestCase):

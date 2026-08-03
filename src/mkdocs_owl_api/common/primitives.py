@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import html as _html
 import re
-from typing import Any
+from typing import Any, Iterable, Sequence
 
 import markdown as _md
 import yaml
@@ -445,223 +445,24 @@ def _build_description_block(prop: dict[str, Any]) -> str:
     return "\n".join(parts).strip()
 
 
-def _flatten_properties(
-    properties: dict[str, Any],
-    required: set[str],
-    *,
-    hide_internal: bool,
-    max_depth: int,
-    _prefix: str = "",
-    _depth: int = 1,
-) -> list[tuple[str, dict[str, Any], bool, str | None]]:
-    rows: list[tuple[str, dict[str, Any], bool, str | None]] = []
-    for pname, pschema in properties.items():
-        if not isinstance(pschema, dict):
-            continue
-        if hide_internal and pschema.get("x-internal-only") is True:
-            continue
-
-        path = f"{_prefix}{pname}"
-        req = pname in required
-        child_props = pschema.get("properties")
-        is_inline_object = (
-            "$ref" not in pschema
-            and isinstance(child_props, dict) and child_props
-        )
-        items = pschema.get("items") if pschema.get("type") == "array" else None
-        item_props = items.get("properties") if isinstance(items, dict) else None
-        is_array_of_objects = (
-            isinstance(items, dict) and "$ref" not in items
-            and isinstance(item_props, dict) and item_props
-        )
-
-        if is_inline_object and _depth < max_depth:
-            rows.append((path, pschema, req, None))
-            rows.extend(_flatten_properties(
-                child_props, set(pschema.get("required") or []),
-                hide_internal=hide_internal, max_depth=max_depth,
-                _prefix=f"{path}.", _depth=_depth + 1,
-            ))
-        elif is_array_of_objects and _depth < max_depth:
-            rows.append((f"{path}[]", pschema, req, "array of objects"))
-            rows.extend(_flatten_properties(
-                item_props, set(items.get("required") or []),
-                hide_internal=hide_internal, max_depth=max_depth,
-                _prefix=f"{path}[].", _depth=_depth + 1,
-            ))
-        else:
-            rows.append((path, pschema, req, None))
-    return rows
-
-
-def _render_properties_table(
-    properties: dict[str, Any],
-    required: set[str],
-    *,
-    hide_internal: bool = False,
-    max_depth: int = 3,
-) -> str:
-    rows = _flatten_properties(
-        properties, required, hide_internal=hide_internal, max_depth=max_depth,
-    )
-    if not rows:
-        return ""
-    parts: list[str] = [
-        '<table>',
-        '<thead>',
-        '<tr><th>Name</th><th>Type</th><th>Description</th></tr>',
-        '</thead>',
-        '<tbody>',
+def _html_table(headers: "Sequence[str]", rows: "Iterable[str]") -> str:
+    """
+    Wrap pre-rendered `<tr>` cells in a table. Built as HTML rather than a
+    markdown pipe table because the cells carry block content - constraint
+    lists, admonition-free multi-line descriptions - that pipe tables cannot
+    hold.
+    """
+    out = [
+        "<table>",
+        "<thead>",
+        "<tr>" + "".join(f"<th>{h}</th>" for h in headers) + "</tr>",
+        "</thead>",
+        "<tbody>",
     ]
-    for path, pschema, req, type_override in rows:
-        parts.append(_render_property_row(
-            path, pschema, required=req, type_override=type_override,
-        ))
-    parts.append('</tbody>')
-    parts.append('</table>')
-    parts.append("")
-    return "\n".join(parts)
-
-
-def _render_schema(
-    schema: dict[str, Any],
-    *,
-    hide_internal: bool,
-    max_depth: int = 3,
-) -> str:
-    parts: list[str] = []
-
-    desc = (schema.get("description") or "").strip()
-    if desc:
-        parts.append(_demote_headings(desc))
-        parts.append("")
-
-    if "$ref" in schema:
-        parts.append(f"_Type:_ {_ref_link(schema['$ref'])}")
-        return "\n".join(parts).strip()
-
-    note = _closed_object_note(schema)
-    if note:
-        parts.append(note)
-        parts.append("")
-
-    t = schema.get("type")
-    enum = schema.get("enum")
-    if not t:
-        t = _infer_enum_type(enum)
-
-    base_props: dict[str, Any] = dict(schema.get("properties") or {})
-    base_required: set[str] = set(schema.get("required") or [])
-    compose_lines: list[str] = []
-
-    all_of = schema.get("allOf")
-    if isinstance(all_of, list):
-        includes: list[str] = []
-        for mem in all_of:
-            if not isinstance(mem, dict):
-                continue
-            if "$ref" in mem:
-                includes.append(_ref_link(mem["$ref"]))
-            else:
-                base_props.update(mem.get("properties") or {})
-                base_required.update(mem.get("required") or [])
-        if includes:
-            compose_lines.append("**All of:** " + " | ".join(includes))
-
-    for kw, label in (("oneOf", "One of"), ("anyOf", "Any of")):
-        members = schema.get(kw)
-        if isinstance(members, list) and members:
-            rendered: list[str] = []
-            for mem in members:
-                if isinstance(mem, dict) and "$ref" in mem:
-                    rendered.append(_ref_link(mem["$ref"]))
-                elif isinstance(mem, dict):
-                    rendered.append(f"`{_format_type(mem)}`")
-                else:
-                    rendered.append(f"`{mem}`")
-            compose_lines.append(f"**{label}:** " + " | ".join(rendered))
-
-    if enum and not base_props:
-        if t:
-            parts.append(f"_Type:_ `{t}`")
-            parts.append("")
-        parts.append("**Allowed values:**")
-        parts.append("")
-        for v in enum:
-            parts.append(f"- `{v}`")
-        return "\n".join(parts).strip()
-
-    if t:
-        parts.append(f"_Type:_ `{t}`")
-        parts.append("")
-
-    for line in compose_lines:
-        parts.append(line)
-        parts.append("")
-
-    if base_props:
-        parts.append("_Properties:_")
-        parts.append("")
-        parts.append(_render_properties_table(
-            base_props, base_required,
-            hide_internal=hide_internal, max_depth=max_depth,
-        ))
-
-    return "\n".join(parts).strip()
-
-
-def _render_security_inline(spec: dict[str, Any], entry: Any) -> str:
-    if not isinstance(entry, dict):
-        return ""
-
-    scopes: Any = None
-    if "$ref" in entry:
-        ref = entry["$ref"]
-        scheme_name = ref.rsplit("/", 1)[-1]
-        scheme = _resolve_ref(spec, ref)
-    else:
-        items = list(entry.items())
-        if not items:
-            return ""
-        scheme_name, scopes = items[0]
-        components = (spec.get("components") or {}).get("securitySchemes") or {}
-        scheme = components.get(scheme_name) if isinstance(components, dict) else None
-
-    if not isinstance(scheme, dict):
-        return f"- **Security:** `{scheme_name}`"
-
-    body_lines: list[str] = []
-    t = scheme.get("type")
-    if t:
-        body_lines.append(f"**Type:** {_pill(str(t), kind='scheme')}")
-        body_lines.append("")
-    for label, key in (
-        ("Name", "name"),
-        ("In", "in"),
-        ("Scheme", "scheme"),
-        ("Bearer format", "bearerFormat"),
-        ("OpenID Connect URL", "openIdConnectUrl"),
-    ):
-        v = scheme.get(key)
-        if v:
-            body_lines.append(f"**{label}:** `{v}`")
-    sdesc = (scheme.get("description") or "").strip()
-    if sdesc:
-        if body_lines and body_lines[-1] != "":
-            body_lines.append("")
-        body_lines.append(_demote_headings(sdesc, levels=2))
-
-    if isinstance(scopes, list) and scopes:
-        if body_lines and body_lines[-1] != "":
-            body_lines.append("")
-        body_lines.append("**Scopes:** " + ", ".join(f"`{sc}`" for sc in scopes))
-
-    indented = "\n".join(("    " + l) if l else "" for l in body_lines)
-
-    return (
-        f'!!! note ":material-security: Security: {scheme_name}"\n'
-        f"{indented}"
-    )
+    out.extend(rows)
+    out.append("</tbody>")
+    out.append("</table>")
+    return "\n".join(out)
 
 
 def _table_cell(text: Any) -> str:
@@ -673,34 +474,3 @@ def _file_format(url: str) -> str:
     """The format label for a download, taken from its file extension."""
     filename = url.split("?")[0].rsplit("/", 1)[-1]
     return filename.rpartition(".")[2].lower() or "unknown"
-
-
-def _render_downloads_table(
-    spec_url: str,
-    attachments: list[dict[str, Any]],
-    *,
-    hide_download: bool,
-    spec_type: str,
-) -> str:
-    rows: list[tuple[str, str]] = []
-    if spec_url and not hide_download:
-        rows.append((
-            f":material-file-document: [Specification Source]({spec_url})",
-            f"{spec_type} specification in {_file_format(spec_url)} format",
-        ))
-    for att in attachments:
-        title = _table_cell(att.get("title"))
-        description = _table_cell(att.get("description"))
-        if att.get("url"):
-            rows.append((f":material-file-document: [{title}]({att['url']})", description))
-        else:
-            unavailable = f"_(unavailable: {_table_cell(att.get('error'))})_"
-            rows.append((f":material-file-document: {title} {unavailable}", description))
-
-    if not rows:
-        return ""
-
-    out = ["| Attachment | Description |", "|---|---|"]
-    out.extend(f"| {label} | {description} |" for label, description in rows)
-    out.append("")
-    return "\n".join(out)
