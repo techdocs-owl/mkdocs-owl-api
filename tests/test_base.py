@@ -4,7 +4,7 @@ import unittest
 
 from mkdocs_owl_api.common.base import (
     PageBuilder,
-    PartBuilder,
+    BlockBuilder,
     RenderContext,
     join_blocks,
 )
@@ -48,7 +48,7 @@ class TestJoinBlocks(unittest.TestCase):
         self.assertEqual(join_blocks(["a", "---", "b"]), "a\n\n---\n\nb")
 
 
-class _Static(PartBuilder):
+class _Static(BlockBuilder):
     def __init__(self, ctx, blocks):
         super().__init__(ctx)
         self._blocks = blocks
@@ -57,10 +57,10 @@ class _Static(PartBuilder):
         return self._blocks
 
 
-class TestPartBuilder(unittest.TestCase):
+class TestBlockBuilder(unittest.TestCase):
     def test_build_is_abstract(self):
         with self.assertRaises(NotImplementedError):
-            PartBuilder(_ctx()).build()
+            BlockBuilder(_ctx()).build()
 
     def test_exposes_context(self):
         ctx = _ctx(spec={"info": {"title": "T"}}, hide_internal=True)

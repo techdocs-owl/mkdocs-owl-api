@@ -58,12 +58,9 @@ def join_blocks(blocks: Iterable[str]) -> str:
     return "\n\n".join(kept)
 
 
-class PartBuilder:
+class BlockBuilder:
     """
-    Base class for page part builders.
-
-    Subclasses return *blocks*, never lines with hand-managed `""` separators.
-    An empty list means the part contributes nothing.
+    Base class for everything that contributes markdown to a page.
     """
 
     def __init__(self, ctx: RenderContext):
@@ -127,7 +124,7 @@ class PageBuilder:
             blocks.append(f"**Version:** `{version}`")
         return blocks
 
-    def sections(self) -> list[PartBuilder]:
+    def sections(self) -> list[BlockBuilder]:
         """The flavour's section order. Subclass responsibility."""
         raise NotImplementedError
 

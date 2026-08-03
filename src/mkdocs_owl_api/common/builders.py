@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import PartBuilder, RenderContext
+from .base import BlockBuilder, RenderContext
 from .primitives import (
     _anchor,
     _closed_object_note,
@@ -27,7 +27,7 @@ from .primitives import (
 )
 
 
-class InfoExtrasBuilder(PartBuilder):
+class InfoExtrasBuilder(BlockBuilder):
     """
     `info.license`, `info.contact`, `info.externalDocs`.
 
@@ -68,7 +68,7 @@ class InfoExtrasBuilder(PartBuilder):
         return ["\n".join(lines)] if lines else []
 
 
-class InfoDescriptionBuilder(PartBuilder):
+class InfoDescriptionBuilder(BlockBuilder):
     """`info.description`, demoted so its headings nest under the page title."""
 
     def build(self) -> list[str]:
@@ -76,7 +76,7 @@ class InfoDescriptionBuilder(PartBuilder):
         return [_demote_headings(desc)] if desc else []
 
 
-class SchemaTableBuilder(PartBuilder):
+class SchemaTableBuilder(BlockBuilder):
     """
     JSON Schema in, HTML property table out.
 
@@ -164,7 +164,7 @@ class SchemaTableBuilder(PartBuilder):
         return rows
 
 
-class SchemaBuilder(PartBuilder):
+class SchemaBuilder(BlockBuilder):
     """
     One schema: description, type, composition keywords, property table.
     """
@@ -262,7 +262,7 @@ class SchemaBuilder(PartBuilder):
         return lines
 
 
-class SchemasBuilder(PartBuilder):
+class SchemasBuilder(BlockBuilder):
     """
     The `components.schemas` page section. Identical for both flavours.
     """
@@ -281,7 +281,7 @@ class SchemasBuilder(PartBuilder):
         return blocks
 
 
-class AttachmentsBuilder(PartBuilder):
+class AttachmentsBuilder(BlockBuilder):
     """
     The downloads table: the spec itself plus any configured attachments.
 
@@ -327,7 +327,7 @@ class AttachmentsBuilder(PartBuilder):
         return ["\n".join(out)]
 
 
-class SecurityBuilder(PartBuilder):
+class SecurityBuilder(BlockBuilder):
     """
     One security requirement, rendered as an admonition. Used inline by both
     flavours - openapi per endpoint, asyncapi per server.

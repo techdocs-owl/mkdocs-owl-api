@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..common.base import PartBuilder, RenderContext
+from ..common.base import BlockBuilder, RenderContext
 from ..common.builders import SchemaBuilder, SecurityBuilder
 from ..common.primitives import (
     _anchor,
@@ -25,7 +25,7 @@ from ..common.primitives import (
 )
 
 
-class ServersBuilder(PartBuilder):
+class ServersBuilder(BlockBuilder):
     """The `## Servers` section. `servers` is a dict keyed by server name."""
 
     def build(self) -> list[str]:
@@ -79,7 +79,7 @@ class ServersBuilder(PartBuilder):
         return blocks
 
 
-class MessageBuilder(PartBuilder):
+class MessageBuilder(BlockBuilder):
     """
     One message.
 
@@ -163,7 +163,7 @@ class MessageBuilder(PartBuilder):
         return blocks
 
 
-class MessagesBuilder(PartBuilder):
+class MessagesBuilder(BlockBuilder):
     """The `## Messages` section, from `components.messages`."""
 
     def build(self) -> list[str]:
@@ -182,7 +182,7 @@ class MessagesBuilder(PartBuilder):
         return blocks
 
 
-class OperationsBuilder(PartBuilder):
+class OperationsBuilder(BlockBuilder):
     """
     The `## Operations` section.
 
@@ -198,7 +198,7 @@ class OperationsBuilder(PartBuilder):
         return _V2OperationsBuilder(self.ctx).build()
 
 
-class _V3OperationsBuilder(PartBuilder):
+class _V3OperationsBuilder(BlockBuilder):
     """AsyncAPI 3.0: a top-level `operations` map, rendered as is."""
 
     def build(self) -> list[str]:
@@ -271,7 +271,7 @@ class _V3OperationsBuilder(PartBuilder):
         return [label, "\n".join(refs)] if refs else [label]
 
 
-class _V2OperationsBuilder(PartBuilder):
+class _V2OperationsBuilder(BlockBuilder):
     """AsyncAPI 2.x: `publish`/`subscribe` collected off each channel."""
 
     def build(self) -> list[str]:
@@ -359,7 +359,7 @@ class _V2OperationsBuilder(PartBuilder):
         return blocks
 
 
-class ParametersBuilder(PartBuilder):
+class ParametersBuilder(BlockBuilder):
     """The `## Parameters` section, from `components.parameters`."""
 
     def build(self) -> list[str]:
@@ -389,7 +389,7 @@ class ParametersBuilder(PartBuilder):
         return blocks
 
 
-class TraitsBuilder(PartBuilder):
+class TraitsBuilder(BlockBuilder):
     """`components.messageTraits` or `components.operationTraits`."""
 
     def __init__(self, ctx: RenderContext, *, container: str, heading: str):
@@ -428,7 +428,7 @@ class TraitsBuilder(PartBuilder):
         return blocks
 
 
-class DefaultContentTypeBuilder(PartBuilder):
+class DefaultContentTypeBuilder(BlockBuilder):
     """The spec-level `defaultContentType`."""
 
     def build(self) -> list[str]:

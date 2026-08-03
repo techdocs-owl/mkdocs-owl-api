@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..common.base import PartBuilder, RenderContext
+from ..common.base import BlockBuilder, RenderContext
 from ..common.builders import SecurityBuilder
 from ..common.primitives import (
     _anchor,
@@ -33,7 +33,7 @@ def _method_pill(method: str) -> str:
     return _pill(method.upper(), kind=f"http-{method}")
 
 
-class ServersBuilder(PartBuilder):
+class ServersBuilder(BlockBuilder):
     """The `## Servers` section. `servers` is a list, rendered as bullets."""
 
     def build(self) -> list[str]:
@@ -70,7 +70,7 @@ class ServersBuilder(PartBuilder):
         return ["## Servers", "\n".join(bullets)] if bullets else ["## Servers"]
 
 
-class ParametersBuilder(PartBuilder):
+class ParametersBuilder(BlockBuilder):
     """
     An operation's parameters, as a Name/In/Type/Description table.
 
@@ -125,7 +125,7 @@ class ParametersBuilder(PartBuilder):
         return [_html_table(self.HEADERS, rows)] if rows else []
 
 
-class RequestBuilder(PartBuilder):
+class RequestBuilder(BlockBuilder):
     """
     An operation's request body.
 
@@ -159,7 +159,7 @@ class RequestBuilder(PartBuilder):
         return blocks
 
 
-class ResponsesBuilder(PartBuilder):
+class ResponsesBuilder(BlockBuilder):
     """
     An operation's responses, as a Status/Description/Schema index.
 
@@ -213,7 +213,7 @@ class ResponsesBuilder(PartBuilder):
         return ["**Responses**", _html_table(self.HEADERS, rows)] if rows else []
 
 
-class EndpointBuilder(PartBuilder):
+class EndpointBuilder(BlockBuilder):
     """One operation: heading, method pill, parameters, body, responses, security."""
 
     def __init__(
@@ -280,7 +280,7 @@ class EndpointBuilder(PartBuilder):
         return blocks
 
 
-class EndpointsBuilder(PartBuilder):
+class EndpointsBuilder(BlockBuilder):
     """
     Every operation in `paths`, grouped under a `## tag` heading.
 
