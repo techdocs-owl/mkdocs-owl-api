@@ -24,6 +24,20 @@ class SpecError(Exception):
     """The spec could not be fetched, read or parsed."""
 
 
+def _is_url(uri: str) -> bool:
+    return uri.startswith("http://") or uri.startswith("https://")
+
+
+def _parse_text(text: str) -> Any:
+    """
+    Parse spec text: JSON first, YAML second.
+    """
+    try:
+        return json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        return yaml.safe_load(text)
+
+
 def _fetch_and_parse(uri: str, cache: dict[str, Any]) -> Any:
     """
     Fetch a URI (HTTP URL or local file path) and parse as JSON/YAML.
@@ -31,7 +45,7 @@ def _fetch_and_parse(uri: str, cache: dict[str, Any]) -> Any:
     if uri in cache:
         return cache[uri]
 
-    if uri.startswith("http://") or uri.startswith("https://"):
+    if _is_url(uri):
         try:
             with urllib.request.urlopen(uri, timeout=30) as resp:
                 text = resp.read().decode("utf-8")
@@ -46,12 +60,9 @@ def _fetch_and_parse(uri: str, cache: dict[str, Any]) -> Any:
             return None
 
     try:
-        result = json.loads(text)
-    except (json.JSONDecodeError, ValueError):
-        try:
-            result = yaml.safe_load(text)
-        except yaml.YAMLError:
-            result = None
+        result = _parse_text(text)
+    except yaml.YAMLError:
+        result = None
     cache[uri] = result
     return result
 
@@ -60,9 +71,9 @@ def _resolve_uri(ref: str, base_uri: str) -> str:
     """
     Resolve a $ref against a base URI (URL or file path).
     """
-    if ref.startswith("http://") or ref.startswith("https://"):
+    if _is_url(ref):
         return ref
-    if base_uri.startswith("http://") or base_uri.startswith("https://"):
+    if _is_url(base_uri):
         from urllib.parse import urljoin
         return urljoin(base_uri, ref)
     return str((Path(base_uri).parent / ref).resolve())
@@ -106,7 +117,7 @@ def _load_spec(spec_ref: str, base: Path) -> dict[str, Any]:
 
     Raises `SpecError` on any failure - `on_page_markdown` turns it into an error page.
     """
-    is_url = spec_ref.startswith("http://") or spec_ref.startswith("https://")
+    is_url = _is_url(spec_ref)
 
     if is_url:
         try:
@@ -127,14 +138,10 @@ def _load_spec(spec_ref: str, base: Path) -> dict[str, Any]:
 
     source_label = spec_ref if is_url else str(spec_path)
 
-    spec: Any = None
     try:
-        spec = json.loads(text)
-    except (json.JSONDecodeError, ValueError):
-        try:
-            spec = yaml.safe_load(text)
-        except yaml.YAMLError as exc:
-            raise SpecError(f"spec parse error: `{source_label}`: {exc}") from exc
+        spec = _parse_text(text)
+    except yaml.YAMLError as exc:
+        raise SpecError(f"spec parse error: `{source_label}`: {exc}") from exc
 
     if spec is None:
         raise SpecError(f"spec file is empty: `{source_label}` contains no content.")
@@ -151,7 +158,7 @@ def _read_bytes(src: str, base: Path) -> tuple[bytes | None, str | None]:
 
     Returns (content, None) on success or (None, error_message) on failure.
     """
-    if src.startswith("http://") or src.startswith("https://"):
+    if _is_url(src):
         try:
             with urllib.request.urlopen(src, timeout=30) as resp:
                 return resp.read(), None
@@ -208,8 +215,9 @@ def _save_attachments(
     results: list[ResolvedAttachment] = []
     for item in attachments:
         src = item.path
-        is_url = src.startswith("http://") or src.startswith("https://")
-        filename = src.split("?")[0].rsplit("/", 1)[-1] if is_url else Path(src).name
+        # `Path(...).name` handles both branches: a URL's query string is
+        # stripped first, and a local path has nothing to strip.
+        filename = Path(src.split("?")[0]).name
         label = item.title or filename
 
         content, err = _read_bytes(src, base)
