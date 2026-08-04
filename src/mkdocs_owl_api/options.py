@@ -9,6 +9,11 @@ MIN_SCHEMA_DEPTH = 1
 _TRUTHY = frozenset({"true", "yes", "on", "1"})
 _FALSY = frozenset({"false", "no", "off", "0", ""})
 
+#: `type:` -> how that flavour is spelled in prose. Keyed like `_RENDERERS` in
+#: `plugin.py`; a `type:` this plugin does not own never reaches a renderer, so
+#: the fallback is a guard rather than a supported path.
+_SPEC_LABELS = {"openapi": "OpenAPI", "asyncapi": "AsyncAPI"}
+
 
 def _as_bool(value: Any, default: bool = False) -> bool:
     if isinstance(value, bool):
@@ -100,6 +105,17 @@ class PageOptions:
     hide_traits: bool = False
     hide_security: bool = False
     attachments: tuple[Attachment, ...] = ()
+
+    @property
+    def spec_label(self) -> str:
+        """
+        Display form of `type:`, for prose and table cells.
+
+        `type` is the single source of the flavour - the one the user wrote and
+        the one dispatch keys on - so nothing downstream has to declare its own
+        name for itself.
+        """
+        return _SPEC_LABELS.get(self.type, self.type)
 
     @classmethod
     def resolve(

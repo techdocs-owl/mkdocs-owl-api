@@ -3,9 +3,8 @@ from __future__ import annotations
 import unittest
 
 from mkdocs_owl_api.common import primitives as common
-from mkdocs_owl_api.common.base import RenderContext, join_blocks
+from mkdocs_owl_api.common.base import AttachmentsBuilder, RenderContext, join_blocks
 from mkdocs_owl_api.common.builders import (
-    AttachmentsBuilder,
     SchemaBuilder,
     SchemaTableBuilder,
 )
@@ -29,11 +28,12 @@ def _render_schema(schema, *, hide_internal, max_depth=3):
 
 
 def _render_downloads_table(spec_url, attachments, *, hide_download, spec_type):
+    """`spec_type` is the page's `type:`, the same value dispatch keys on."""
     ctx = RenderContext(
-        spec={}, options=PageOptions(type="", hide_download_link=hide_download),
+        spec={}, options=PageOptions(type=spec_type, hide_download_link=hide_download),
         spec_url=spec_url, attachments=tuple(attachments),
     )
-    blocks = AttachmentsBuilder(ctx, spec_type).build()
+    blocks = AttachmentsBuilder(ctx).build()
     return blocks[0] if blocks else ""
 
 
@@ -285,7 +285,7 @@ class TestDownloadsTable(unittest.TestCase):
                                 url="../assets/techdocs-owl-api/x-a.proto"),
              ResolvedAttachment(title="Bad", description=None, error="404 Not Found")],
             hide_download=False,
-            spec_type="AsyncAPI",
+            spec_type="asyncapi",
         )
         self.assertIn("| Attachment | Description |", out)
         self.assertNotIn("| Downloads |", out)
@@ -302,7 +302,7 @@ class TestDownloadsTable(unittest.TestCase):
     def test_downloads_spec_type_openapi(self):
         out = _render_downloads_table(
             "../assets/techdocs-owl-api/x.json", [],
-            hide_download=False, spec_type="OpenAPI",
+            hide_download=False, spec_type="openapi",
         )
         self.assertIn("OpenAPI specification in json format", out)
 
@@ -311,7 +311,7 @@ class TestDownloadsTable(unittest.TestCase):
         out = _render_downloads_table(
             "", [ResolvedAttachment(title="A | B", description="one | two\nthree",
                                     url="x.bin")],
-            hide_download=False, spec_type="OpenAPI",
+            hide_download=False, spec_type="openapi",
         )
         row = out.splitlines()[2]
         self.assertEqual(row.count("|"), 3 + 2)  # 3 delimiters + 2 escaped
@@ -320,7 +320,7 @@ class TestDownloadsTable(unittest.TestCase):
 
     def test_downloads_hidden(self):
         out = _render_downloads_table(
-            "x.json", [], hide_download=True, spec_type="OpenAPI")
+            "x.json", [], hide_download=True, spec_type="openapi")
         self.assertEqual(out, "")
 
 

@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable
 
 from ..options import PageOptions, ResolvedAttachment
+from .primitives import _file_format, _table_cell
 
 
 @dataclass(frozen=True)
@@ -78,18 +79,49 @@ class BlockBuilder:
         raise NotImplementedError
 
 
+class AttachmentsBuilder(BlockBuilder):
+    """
+    The downloads table: the spec itself plus any configured attachments.
+    """
+
+    def build(self) -> list[str]:
+        rows: list[tuple[str, str]] = []
+
+        if self.ctx.spec_url and not self.options.hide_download_link:
+            rows.append((
+                f":material-file-document: [Specification Source]({self.ctx.spec_url})",
+                f"{self.options.spec_label} specification"
+                f" in {_file_format(self.ctx.spec_url)} format",
+            ))
+
+        for att in self.ctx.attachments:
+            title = _table_cell(att.title)
+            description = _table_cell(att.description)
+            if att.url:
+                rows.append((
+                    f":material-file-document: [{title}]({att.url})", description,
+                ))
+            else:
+                unavailable = f"_(unavailable: {_table_cell(att.error)})_"
+                rows.append((
+                    f":material-file-document: {title} {unavailable}", description,
+                ))
+
+        if not rows:
+            return []
+
+        out = ["| Attachment | Description |", "|---|---|"]
+        out.extend(f"| {label} | {description} |" for label, description in rows)
+        return ["\n".join(out)]
+
+
 class PageBuilder:
     """
     Base class for MkDocs page builders.
 
     Owns the preamble shared by every flavour - title, intro, version,
-    downloads - and the joining policy. The section order after the preamble is
-    the subclass's, which is why there is no externally-driven configuration
-    phase and so no window in which a half-configured builder is observable.
+    downloads - and the joining policy.
     """
-
-    #: Label used for the spec row of the downloads table ("OpenAPI"/"AsyncAPI").
-    spec_type: str = ""
 
     def __init__(self, ctx: RenderContext):
         self.ctx = ctx
@@ -122,6 +154,7 @@ class PageBuilder:
         version = self.version()
         if version and not self.options.hide_version:
             blocks.append(f"**Version:** `{version}`")
+        blocks.extend(AttachmentsBuilder(self.ctx).build())
         return blocks
 
     def sections(self) -> list[BlockBuilder]:

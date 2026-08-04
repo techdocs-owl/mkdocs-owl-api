@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-from mkdocs_owl_api.common.base import RenderContext, join_blocks
+from mkdocs_owl_api.common.base import AttachmentsBuilder, RenderContext, join_blocks
 from mkdocs_owl_api.common.builders import (
-    AttachmentsBuilder,
     SchemaBuilder,
     SchemaTableBuilder,
     SchemasBuilder,
@@ -13,10 +12,12 @@ from mkdocs_owl_api.common.builders import (
 from mkdocs_owl_api.options import PageOptions, ResolvedAttachment
 
 
-def _ctx(spec=None, *, spec_url="", attachments=(), **opts) -> RenderContext:
+def _ctx(
+    spec=None, *, spec_url="", attachments=(), spec_type="openapi", **opts
+) -> RenderContext:
     return RenderContext(
         spec=spec if spec is not None else {},
-        options=PageOptions(type="openapi", **opts),
+        options=PageOptions(type=spec_type, **opts),
         spec_url=spec_url,
         attachments=tuple(attachments),
     )
@@ -151,12 +152,18 @@ class TestSchemasBuilder(unittest.TestCase):
 
 class TestAttachmentsBuilder(unittest.TestCase):
     def test_nothing_to_show_omits_the_section(self):
-        self.assertEqual(AttachmentsBuilder(_ctx(), "OpenAPI").build(), [])
+        self.assertEqual(AttachmentsBuilder(_ctx()).build(), [])
 
     def test_spec_row_uses_the_flavour_label_and_format(self):
-        block = AttachmentsBuilder(_ctx(spec_url="../a/spec.yml"), "AsyncAPI").build()[0]
+        """The label is derived from the page's `type:`, not declared alongside it."""
+        ctx = _ctx(spec_url="../a/spec.yml", spec_type="asyncapi")
+        block = AttachmentsBuilder(ctx).build()[0]
         self.assertIn("[Specification Source](../a/spec.yml)", block)
         self.assertIn("AsyncAPI specification in yml format", block)
+
+    def test_unknown_flavour_falls_back_to_the_raw_type(self):
+        block = AttachmentsBuilder(_ctx(spec_url="s.json", spec_type="graphql")).build()[0]
+        self.assertIn("graphql specification in json format", block)
 
     def test_hide_download_link_drops_only_the_spec_row(self):
         ctx = _ctx(
@@ -164,20 +171,20 @@ class TestAttachmentsBuilder(unittest.TestCase):
             attachments=[ResolvedAttachment(title="Guide", description="d", url="g.pdf")],
             hide_download_link=True,
         )
-        block = AttachmentsBuilder(ctx, "OpenAPI").build()[0]
+        block = AttachmentsBuilder(ctx).build()[0]
         self.assertNotIn("Specification Source", block)
         self.assertIn("[Guide](g.pdf)", block)
 
     def test_failed_attachment_reports_the_error(self):
         ctx = _ctx(attachments=[ResolvedAttachment(title="Missing", error="not found")])
-        block = AttachmentsBuilder(ctx, "OpenAPI").build()[0]
+        block = AttachmentsBuilder(ctx).build()[0]
         self.assertIn("_(unavailable: not found)_", block)
 
     def test_pipe_in_cell_is_escaped(self):
         ctx = _ctx(attachments=[
             ResolvedAttachment(title="a|b", url="x", description="c|d"),
         ])
-        block = AttachmentsBuilder(ctx, "OpenAPI").build()[0]
+        block = AttachmentsBuilder(ctx).build()[0]
         self.assertIn("a\\|b", block)
         self.assertIn("c\\|d", block)
 

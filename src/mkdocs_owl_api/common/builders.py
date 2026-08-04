@@ -281,52 +281,6 @@ class SchemasBuilder(BlockBuilder):
         return blocks
 
 
-class AttachmentsBuilder(BlockBuilder):
-    """
-    The downloads table: the spec itself plus any configured attachments.
-
-    A markdown pipe table, unlike the HTML tables elsewhere - the cells are
-    short and the source stays readable.
-
-    Assets are registered with mkdocs by the plugin *before* rendering; this
-    builder only formats what it is handed. See `.tasks/render-builders.md`,
-    open question 1.
-    """
-
-    def __init__(self, ctx: RenderContext, spec_type: str):
-        super().__init__(ctx)
-        self._spec_type = spec_type
-
-    def build(self) -> list[str]:
-        rows: list[tuple[str, str]] = []
-
-        if self.ctx.spec_url and not self.options.hide_download_link:
-            rows.append((
-                f":material-file-document: [Specification Source]({self.ctx.spec_url})",
-                f"{self._spec_type} specification in {_file_format(self.ctx.spec_url)} format",
-            ))
-
-        for att in self.ctx.attachments:
-            title = _table_cell(att.title)
-            description = _table_cell(att.description)
-            if att.url:
-                rows.append((
-                    f":material-file-document: [{title}]({att.url})", description,
-                ))
-            else:
-                unavailable = f"_(unavailable: {_table_cell(att.error)})_"
-                rows.append((
-                    f":material-file-document: {title} {unavailable}", description,
-                ))
-
-        if not rows:
-            return []
-
-        out = ["| Attachment | Description |", "|---|---|"]
-        out.extend(f"| {label} | {description} |" for label, description in rows)
-        return ["\n".join(out)]
-
-
 class SecurityBuilder(BlockBuilder):
     """
     One security requirement, rendered as an admonition. Used inline by both
