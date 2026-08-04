@@ -90,5 +90,39 @@ class TestOpenAPI(unittest.TestCase):
         self.assertIn("orders:read", self.md)
 
 
+class TestOpenAPIInfoExtras(unittest.TestCase):
+    SPEC = {
+        "openapi": "3.0.3",
+        "info": {
+            "title": "Cat",
+            "version": "1.0.0",
+            "license": {"name": "Apache 2.0", "url": "https://apache.org/l"},
+            "contact": {"email": "apiteam@swagger.io"},
+        },
+        "externalDocs": {"description": "Find out more", "url": "https://swagger.io"},
+        "paths": {},
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.md = _render_openapi_page(cls.SPEC, PageOptions(type="openapi"))
+
+    def test_license_is_rendered(self):
+        self.assertIn("**License:** [Apache 2.0](https://apache.org/l)", self.md)
+
+    def test_contact_is_rendered(self):
+        self.assertIn(
+            "**Contact:** [apiteam@swagger.io](mailto:apiteam@swagger.io)", self.md)
+
+    def test_root_level_external_docs_is_rendered(self):
+        self.assertIn(
+            "**External documentation:** [Find out more](https://swagger.io)", self.md)
+
+    def test_extras_precede_the_description(self):
+        spec = {**self.SPEC, "info": {**self.SPEC["info"], "description": "Body text."}}
+        md = _render_openapi_page(spec, PageOptions(type="openapi"))
+        self.assertLess(md.index("**License:**"), md.index("Body text."))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

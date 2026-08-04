@@ -5,7 +5,11 @@ OpenAPI 3.x page builder.
 from __future__ import annotations
 
 from ..common.base import PageBuilder
-from ..common.builders import InfoDescriptionBuilder, SchemasBuilder
+from ..common.builders import (
+    InfoDescriptionBuilder,
+    InfoExtrasBuilder,
+    SchemasBuilder,
+)
 from .builders import EndpointsBuilder, ServersBuilder
 
 
@@ -17,6 +21,7 @@ class OpenApiPageBuilder(PageBuilder):
     def sections(self) -> list:
         ctx = self.ctx
         return [
+            InfoExtrasBuilder(ctx),
             InfoDescriptionBuilder(ctx),
             ServersBuilder(ctx),
             EndpointsBuilder(ctx),

@@ -30,42 +30,51 @@ from .primitives import (
 class InfoExtrasBuilder(BlockBuilder):
     """
     `info.license`, `info.contact`, `info.externalDocs`.
-
-    Lives here rather than under a flavour because the shapes are identical,
-    but it is currently wired into the AsyncAPI page only - OpenAPI pages drop
-    these silently (`code-improvements.md` §2). Wiring it into
-    `OpenApiPageBuilder` is a behaviour change and gets its own commit.
     """
+
+    @staticmethod
+    def _license(license_dict: Any) -> list[str]:
+        if not isinstance(license_dict, dict):
+            return []
+        name = license_dict.get("name") or "license"
+        url = license_dict.get("url")
+        target = f"[{name}]({url})" if url else name
+        return [f":material-scale-balance: **License:** {target}"]
+
+    @staticmethod
+    def _contact(contact_dict: Any) -> list[str]:
+        if not isinstance(contact_dict, dict):
+            return []
+        bits: list[str] = []
+        if contact_dict.get("name"):
+            bits.append(contact_dict["name"])
+        if contact_dict.get("email"):
+            bits.append(f"[{contact_dict['email']}](mailto:{contact_dict['email']})")
+        if contact_dict.get("url"):
+            bits.append(f"[{contact_dict['url']}]({contact_dict['url']})")
+        return [f":material-contacts: **Contact:** {', '.join(bits)}"] if bits else []
+
+    @staticmethod
+    def _external_docs(*candidates: Any) -> list[str]:
+        """
+        AsyncAPI hangs `externalDocs` off `info`, OpenAPI off the document root
+        """
+        for ext_docs in candidates:
+            if isinstance(ext_docs, dict) and ext_docs.get("url"):
+                url = ext_docs["url"]
+                desc = ext_docs.get("description") or url
+                return [f":material-link-variant: **External documentation:** [{desc}]({url})"]
+        return []
 
     def build(self) -> list[str]:
         info = self.ctx.info
         lines: list[str] = []
-
-        license_ = info.get("license")
-        if isinstance(license_, dict):
-            name = license_.get("name") or "license"
-            url = license_.get("url")
-            lines.append(f"**License:** [{name}]({url})" if url else f"**License:** {name}")
-
-        contact = info.get("contact")
-        if isinstance(contact, dict):
-            bits: list[str] = []
-            if contact.get("name"):
-                bits.append(contact["name"])
-            if contact.get("email"):
-                bits.append(f"[{contact['email']}](mailto:{contact['email']})")
-            if contact.get("url"):
-                bits.append(f"[{contact['url']}]({contact['url']})")
-            if bits:
-                lines.append(f"**Contact:** {', '.join(bits)}")
-
-        ext_docs = info.get("externalDocs")
-        if isinstance(ext_docs, dict) and ext_docs.get("url"):
-            url = ext_docs["url"]
-            desc = ext_docs.get("description") or url
-            lines.append(f"**External docs:** [{desc}]({url})")
-
-        return ["\n".join(lines)] if lines else []
+        lines.extend(self._license(info.get("license")))
+        lines.extend(self._contact(info.get("contact")))
+        lines.extend(self._external_docs(
+            info.get("externalDocs"), self.spec.get("externalDocs"),
+        ))
+        return lines
 
 
 class InfoDescriptionBuilder(BlockBuilder):
@@ -79,11 +88,6 @@ class InfoDescriptionBuilder(BlockBuilder):
 class SchemaTableBuilder(BlockBuilder):
     """
     JSON Schema in, HTML property table out.
-
-    Deliberately not parameterised by columns: the hard part is the *row
-    source*, not the headers. Callers with a different shape - OpenAPI
-    parameters, responses - normalise to a schema first rather than teaching
-    this builder a second traversal. See `.tasks/render-builders.md`.
     """
 
     HEADERS = ("Name", "Type", "Description")

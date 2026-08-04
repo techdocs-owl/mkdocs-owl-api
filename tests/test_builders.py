@@ -4,6 +4,7 @@ import unittest
 
 from mkdocs_owl_api.common.base import AttachmentsBuilder, RenderContext, join_blocks
 from mkdocs_owl_api.common.builders import (
+    InfoExtrasBuilder,
     SchemaBuilder,
     SchemaTableBuilder,
     SchemasBuilder,
@@ -21,6 +22,88 @@ def _ctx(
         spec_url=spec_url,
         attachments=tuple(attachments),
     )
+
+
+class TestInfoExtrasBuilder(unittest.TestCase):
+    FULL = {"info": {
+        "license": {"name": "Apache 2.0", "url": "https://apache.org/l"},
+        "contact": {"name": "API Team", "email": "api@x.io", "url": "https://x.io"},
+        "externalDocs": {"url": "https://docs.x.io", "description": "Guides"},
+    }}
+
+    def test_absent_info_omits_the_section(self):
+        self.assertEqual(InfoExtrasBuilder(_ctx()).build(), [])
+        self.assertEqual(InfoExtrasBuilder(_ctx({"info": {}})).build(), [])
+
+    def test_all_lines_share_in_own_block(self):
+        blocks = InfoExtrasBuilder(_ctx(self.FULL)).build()
+        self.assertEqual(len(blocks), 3)
+
+    def test_license_linked_when_a_url_is_given(self):
+        block = InfoExtrasBuilder(_ctx(self.FULL)).build()[0]
+        self.assertIn(
+            ":material-scale-balance: **License:** [Apache 2.0](https://apache.org/l)",
+            block,
+        )
+
+    def test_license_keeps_its_icon_without_a_url(self):
+        spec = {"info": {"license": {"name": "MIT"}}}
+        self.assertEqual(
+            InfoExtrasBuilder(_ctx(spec)).build(),
+            [":material-scale-balance: **License:** MIT"],
+        )
+
+    def test_license_falls_back_to_a_generic_name(self):
+        spec = {"info": {"license": {"url": "https://x.io/l"}}}
+        self.assertIn("[license](https://x.io/l)", InfoExtrasBuilder(_ctx(spec)).build()[0])
+
+    def test_contact_renders_whatever_subset_is_present(self):
+        spec = {"info": {"contact": {"email": "a@b.c"}}}
+        self.assertEqual(
+            InfoExtrasBuilder(_ctx(spec)).build(),
+            [":material-contacts: **Contact:** [a@b.c](mailto:a@b.c)"],
+        )
+
+    def test_contact_without_usable_fields_is_dropped(self):
+        spec = {"info": {"contact": {"x-team": "payments"}}}
+        self.assertEqual(InfoExtrasBuilder(_ctx(spec)).build(), [])
+
+    def test_external_docs_uses_the_url_when_undescribed(self):
+        spec = {"info": {"externalDocs": {"url": "https://docs.x.io"}}}
+        self.assertEqual(
+            InfoExtrasBuilder(_ctx(spec)).build(),
+            [":material-link-variant: **External documentation:** [https://docs.x.io](https://docs.x.io)"],
+        )
+
+    def test_external_docs_without_a_url_is_dropped(self):
+        spec = {"info": {"externalDocs": {"description": "Guides"}}}
+        self.assertEqual(InfoExtrasBuilder(_ctx(spec)).build(), [])
+
+    def test_external_docs_read_from_the_document_root(self):
+        """OpenAPI hangs `externalDocs` off the root, not off `info`."""
+        spec = {"info": {}, "externalDocs": {"url": "https://x.io", "description": "D"}}
+        self.assertEqual(
+            InfoExtrasBuilder(_ctx(spec)).build(),
+            [":material-link-variant: **External documentation:** [D](https://x.io)"],
+        )
+
+    def test_external_docs_under_info_wins_over_the_root(self):
+        spec = {
+            "info": {"externalDocs": {"url": "https://info.x.io"}},
+            "externalDocs": {"url": "https://root.x.io"},
+        }
+        self.assertIn("https://info.x.io", InfoExtrasBuilder(_ctx(spec)).build()[0])
+
+    def test_unusable_info_placement_falls_through_to_the_root(self):
+        spec = {
+            "info": {"externalDocs": {"description": "no url here"}},
+            "externalDocs": {"url": "https://root.x.io"},
+        }
+        self.assertIn("https://root.x.io", InfoExtrasBuilder(_ctx(spec)).build()[0])
+
+    def test_non_dict_entries_are_ignored(self):
+        spec = {"info": {"license": "MIT", "contact": [], "externalDocs": 7}}
+        self.assertEqual(InfoExtrasBuilder(_ctx(spec)).build(), [])
 
 
 class TestSchemaTableBuilder(unittest.TestCase):
