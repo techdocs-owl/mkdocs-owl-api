@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import unittest
 
-from mkdocs_owl_api.common.base import AttachmentsBuilder, RenderContext, join_blocks
-from mkdocs_owl_api.common.builders import (
+from mkdocs_owl_api.common.base import (
+    AttachmentsBuilder,
     InfoExtrasBuilder,
+    RenderContext,
+    join_blocks,
+)
+from mkdocs_owl_api.common.builders import (
     SchemaBuilder,
     SchemaTableBuilder,
     SchemasBuilder,

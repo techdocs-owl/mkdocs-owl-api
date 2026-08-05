@@ -14,7 +14,6 @@ from .primitives import (
     _anchor,
     _closed_object_note,
     _demote_headings,
-    _file_format,
     _format_type,
     _heading,
     _html_table,
@@ -23,66 +22,7 @@ from .primitives import (
     _ref_link,
     _render_property_row,
     _resolve_ref,
-    _table_cell,
 )
-
-
-class InfoExtrasBuilder(BlockBuilder):
-    """
-    `info.license`, `info.contact`, `info.externalDocs`.
-    """
-
-    @staticmethod
-    def _license(license_dict: Any) -> list[str]:
-        if not isinstance(license_dict, dict):
-            return []
-        name = license_dict.get("name") or "license"
-        url = license_dict.get("url")
-        target = f"[{name}]({url})" if url else name
-        return [f":material-scale-balance: **License:** {target}"]
-
-    @staticmethod
-    def _contact(contact_dict: Any) -> list[str]:
-        if not isinstance(contact_dict, dict):
-            return []
-        bits: list[str] = []
-        if contact_dict.get("name"):
-            bits.append(contact_dict["name"])
-        if contact_dict.get("email"):
-            bits.append(f"[{contact_dict['email']}](mailto:{contact_dict['email']})")
-        if contact_dict.get("url"):
-            bits.append(f"[{contact_dict['url']}]({contact_dict['url']})")
-        return [f":material-contacts: **Contact:** {', '.join(bits)}"] if bits else []
-
-    @staticmethod
-    def _external_docs(*candidates: Any) -> list[str]:
-        """
-        AsyncAPI hangs `externalDocs` off `info`, OpenAPI off the document root
-        """
-        for ext_docs in candidates:
-            if isinstance(ext_docs, dict) and ext_docs.get("url"):
-                url = ext_docs["url"]
-                desc = ext_docs.get("description") or url
-                return [f":material-link-variant: **External documentation:** [{desc}]({url})"]
-        return []
-
-    def build(self) -> list[str]:
-        info = self.ctx.info
-        lines: list[str] = []
-        lines.extend(self._license(info.get("license")))
-        lines.extend(self._contact(info.get("contact")))
-        lines.extend(self._external_docs(
-            info.get("externalDocs"), self.spec.get("externalDocs"),
-        ))
-        return lines
-
-
-class InfoDescriptionBuilder(BlockBuilder):
-    """`info.description`, demoted so its headings nest under the page title."""
-
-    def build(self) -> list[str]:
-        desc = (self.ctx.info.get("description") or "").strip()
-        return [_demote_headings(desc)] if desc else []
 
 
 class SchemaTableBuilder(BlockBuilder):

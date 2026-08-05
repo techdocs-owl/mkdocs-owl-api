@@ -12,17 +12,13 @@ from dataclasses import dataclass
 from typing import Any, Iterable
 
 from ..options import PageOptions, ResolvedAttachment
-from .primitives import _file_format, _table_cell
+from .primitives import _demote_headings, _file_format, _table_cell
 
 
 @dataclass(frozen=True)
 class RenderContext:
     """
     Everything a builder needs, resolved once before rendering starts.
-
-    Read-only for the whole render. Anything a builder would otherwise thread
-    through 6-7 parameter signatures belongs here; anything a builder computes
-    for itself does not - see `.tasks/render-builders.md`, "State discipline".
     """
 
     spec: dict[str, Any]
@@ -79,6 +75,64 @@ class BlockBuilder:
         raise NotImplementedError
 
 
+class InfoExtrasBuilder(BlockBuilder):
+    """
+    `info.license`, `info.contact`, `info.externalDocs`.
+    """
+
+    @staticmethod
+    def _license(license_dict: Any) -> list[str]:
+        if not isinstance(license_dict, dict):
+            return []
+        name = license_dict.get("name") or "license"
+        url = license_dict.get("url")
+        target = f"[{name}]({url})" if url else name
+        return [f":material-scale-balance: **License:** {target}"]
+
+    @staticmethod
+    def _contact(contact_dict: Any) -> list[str]:
+        if not isinstance(contact_dict, dict):
+            return []
+        bits: list[str] = []
+        if contact_dict.get("name"):
+            bits.append(contact_dict["name"])
+        if contact_dict.get("email"):
+            bits.append(f"[{contact_dict['email']}](mailto:{contact_dict['email']})")
+        if contact_dict.get("url"):
+            bits.append(f"[{contact_dict['url']}]({contact_dict['url']})")
+        return [f":material-contacts: **Contact:** {', '.join(bits)}"] if bits else []
+
+    @staticmethod
+    def _external_docs(*candidates: Any) -> list[str]:
+        """
+        AsyncAPI hangs `externalDocs` off `info`, OpenAPI off the document root
+        """
+        for ext_docs in candidates:
+            if isinstance(ext_docs, dict) and ext_docs.get("url"):
+                url = ext_docs["url"]
+                desc = ext_docs.get("description") or url
+                return [f":material-link-variant: **External documentation:** [{desc}]({url})"]
+        return []
+
+    def build(self) -> list[str]:
+        info = self.ctx.info
+        lines: list[str] = []
+        lines.extend(self._license(info.get("license")))
+        lines.extend(self._contact(info.get("contact")))
+        lines.extend(self._external_docs(
+            info.get("externalDocs"), self.spec.get("externalDocs"),
+        ))
+        return lines
+
+
+class InfoDescriptionBuilder(BlockBuilder):
+    """`info.description`, demoted so its headings nest under the page title."""
+
+    def build(self) -> list[str]:
+        desc = (self.ctx.info.get("description") or "").strip()
+        return [_demote_headings(desc)] if desc else []
+
+
 class AttachmentsBuilder(BlockBuilder):
     """
     The downloads table: the spec itself plus any configured attachments.
@@ -120,7 +174,7 @@ class PageBuilder:
     Base class for MkDocs page builders.
 
     Owns the preamble shared by every flavour - title, intro, version,
-    downloads - and the joining policy.
+    downloads, info extras and description - and the joining policy.
     """
 
     def __init__(self, ctx: RenderContext):
@@ -155,6 +209,8 @@ class PageBuilder:
         if version and not self.options.hide_version:
             blocks.append(f"**Version:** `{version}`")
         blocks.extend(AttachmentsBuilder(self.ctx).build())
+        blocks.extend(InfoExtrasBuilder(self.ctx).build())
+        blocks.extend(InfoDescriptionBuilder(self.ctx).build())
         return blocks
 
     def sections(self) -> list[BlockBuilder]:
