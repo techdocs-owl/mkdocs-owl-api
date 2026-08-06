@@ -5,7 +5,7 @@ One dialect-neutral shape. Nothing here records which version the description
 came from, except `ApiDoc.dialect` and `ApiDoc.spec_version`, which exist so a
 page can print the source version.
 
-Scope is what the plugin renders or plausibly will: `Link`, `Callback`,
+Scope is the part of the specification this plugin covers: `Link`, `Callback`,
 `webhooks`, `xml` and `pathItems` components are absent by design.
 """
 
@@ -16,7 +16,7 @@ from enum import Enum
 from typing import Any
 
 from ..common.doc_model import ExternalDocs, Info, Tag
-from ..common.schema_model import UNSET, SchemaLike
+from ..common.schema_model import UNSET, Schema
 
 
 class OpenApiDialect(Enum):
@@ -109,7 +109,7 @@ class Encoding:
 class MediaType:
     """The schema and examples for one media type of a `content` map."""
 
-    schema: SchemaLike | None = None
+    schema: Schema | None = None
     example: Any = UNSET
     examples: dict[str, Example] = field(default_factory=dict)
     encoding: dict[str, Encoding] = field(default_factory=dict)
@@ -128,7 +128,7 @@ class Parameter:
     #: How the value is serialised into the request.
     style: str | None = None
     explode: bool | None = None
-    schema: SchemaLike | None = None
+    schema: Schema | None = None
     example: Any = UNSET
     examples: dict[str, Example] = field(default_factory=dict)
     #: The `content` form of a parameter, mutually exclusive with `schema`.
@@ -150,7 +150,7 @@ class Header:
     deprecated: bool = False
     style: str | None = None
     explode: bool | None = None
-    schema: SchemaLike | None = None
+    schema: Schema | None = None
     example: Any = UNSET
     examples: dict[str, Example] = field(default_factory=dict)
     content: dict[str, MediaType] = field(default_factory=dict)
@@ -243,8 +243,8 @@ class Operation:
     """One method on one path."""
 
     method: HttpMethod = HttpMethod.GET
-    #: Denormalised from the containing `PathItem`, so tag-grouped rendering -
-    #: which flattens the path tree - need not carry pairs around.
+    #: Denormalised from the containing `PathItem`, so an operation identifies
+    #: itself without its container.
     path: str = ""
     operation_id: str | None = None
     summary: str | None = None
@@ -273,7 +273,7 @@ class PathItem:
     summary: str | None = None
     description: str | None = None
     operations: tuple[Operation, ...] = ()
-    #: As declared. `Operation.parameters` holds the merged view to render.
+    #: As declared. `Operation.parameters` holds the merged view.
     parameters: tuple[Parameter, ...] = ()
     servers: tuple[Server, ...] = ()
     extensions: dict[str, Any] = field(default_factory=dict)
@@ -281,9 +281,9 @@ class PathItem:
 
 @dataclass(frozen=True)
 class Components:
-    """Reusable objects by name. What a `SchemaRef` resolves against."""
+    """Reusable objects by name. What a schema's `$ref` resolves against."""
 
-    schemas: dict[str, SchemaLike] = field(default_factory=dict)
+    schemas: dict[str, Schema] = field(default_factory=dict)
     responses: dict[str, Response] = field(default_factory=dict)
     parameters: dict[str, Parameter] = field(default_factory=dict)
     examples: dict[str, Example] = field(default_factory=dict)
@@ -298,9 +298,8 @@ class ApiDoc:
     A described API.
 
     `dialect` and `spec_version` are the one concession to where the description
-    came from: they exist so a page can print `openapi: 3.1.0` or `swagger: 2.0`.
-    Branching on them anywhere else reintroduces the version coupling this model
-    removes.
+    came from: they record the version the source declared. Branching on them
+    for anything else reintroduces the version coupling this model removes.
     """
 
     dialect: OpenApiDialect = OpenApiDialect.V3_1
