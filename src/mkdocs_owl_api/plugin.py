@@ -17,6 +17,7 @@ from .asyncapi.page import AsyncApiPageBuilder
 from .common.base import PageBuilder, RenderContext
 from .loader import _load_spec, _save_attachments, _save_spec
 from .openapi.page import OpenApiPageBuilder
+from .openapi.render import OpenApiRenderPageBuilder
 from .options import PageOptions, site_default
 
 log = get_plugin_logger(__name__)
@@ -31,6 +32,7 @@ _FRONTMATTER_KEY = "techdocs-owl"
 #: relies on: a `type:` this plugin does not own must pass through untouched.
 _RENDERERS: dict[str, type[PageBuilder]] = {
     "openapi": OpenApiPageBuilder,
+    "openapi-new": OpenApiRenderPageBuilder,
     "asyncapi": AsyncApiPageBuilder,
 }
 
