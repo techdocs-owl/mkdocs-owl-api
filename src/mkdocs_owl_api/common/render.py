@@ -28,18 +28,14 @@ from .doc_render import (
 @dataclass(frozen=True)
 class RenderContext:
     """
-    Everything a builder needs, resolved once before rendering starts.
+    Everything a page needs beyond the description itself, resolved before
+    rendering starts.
     """
 
     spec: dict[str, Any]
     options: PageOptions
     spec_url: str = ""
     attachments: tuple[ResolvedAttachment, ...] = ()
-
-    @property
-    def info(self) -> dict[str, Any]:
-        got = self.spec.get("info")
-        return got if isinstance(got, dict) else {}
 
 
 def join_blocks(blocks: Iterable[str]) -> str:
@@ -49,20 +45,11 @@ def join_blocks(blocks: Iterable[str]) -> str:
     The container owns separator policy: a block is a complete chunk of
     markdown carrying no leading or trailing blank lines, and blocks are
     separated by exactly one blank line. Blank blocks drop out, which is what
-    lets a builder return `[]` to omit its section entirely without the caller
+    lets a renderer return `[]` to omit its section entirely without the caller
     testing for it.
-
-    Trailing `---` is dropped too: section builders emit it between items, so
-    the last one would otherwise dangle at the end of the page.
     """
-    kept: list[str] = []
-    for block in blocks:
-        text = block.strip("\n")
-        if text.strip():
-            kept.append(text)
-    while kept and kept[-1].strip() == "---":
-        kept.pop()
-    return "\n\n".join(kept)
+    kept = [block.strip("\n") for block in blocks]
+    return "\n\n".join(block for block in kept if block.strip())
 
 
 class MarkdownRenderer:

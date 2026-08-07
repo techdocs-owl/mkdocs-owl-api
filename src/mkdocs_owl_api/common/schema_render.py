@@ -182,36 +182,31 @@ def property_rows(
     A referenced schema is never expanded - it is rendered under its own
     heading, and the row links there instead.
     """
-    def walk(
-        properties: dict[str, Schema], required: frozenset[str],
-        prefix: str, depth: int,
-    ) -> list[PropertyRow]:
+    def walk_properties(schema: Schema, prefix: str, depth: int) -> list[PropertyRow]:
         rows: list[PropertyRow] = []
-        for name, child in properties.items():
+        for name, child in schema.properties.items():
             if hide_internal and child.extensions.get(_INTERNAL) is True:
                 continue
 
             path = f"{prefix}{name}"
-            is_required = name in required
+            required = schema.is_property_required(name)
             items = child.items if "array" in child.types else None
 
             if _is_expandable_object(child) and depth < max_depth:
-                rows.append(PropertyRow(path, child, is_required))
-                rows.extend(walk(child.properties, frozenset(child.required),
-                                 f"{path}.", depth + 1))
+                rows.append(PropertyRow(path, child, required))
+                rows.extend(walk_properties(child, f"{path}.", depth + 1))
             elif (items is not None and _is_expandable_object(items)
                     and depth < max_depth):
-                rows.append(PropertyRow(f"{path}[]", child, is_required,
+                rows.append(PropertyRow(f"{path}[]", child, required,
                                         "array of objects"))
-                rows.extend(walk(items.properties, frozenset(items.required),
-                                 f"{path}[].", depth + 1))
+                rows.extend(walk_properties(items, f"{path}[].", depth + 1))
             else:
-                rows.append(PropertyRow(path, child, is_required))
+                rows.append(PropertyRow(path, child, required))
         return rows
 
     if not schema.properties:
         return []
-    return walk(schema.properties, frozenset(schema.required), "", 1)
+    return walk_properties(schema, "", 1)
 
 
 def _flags(schema: Schema, *, required: bool) -> list[str]:
