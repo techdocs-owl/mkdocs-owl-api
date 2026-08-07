@@ -8,7 +8,10 @@ supplies `sections()`.
 
 from __future__ import annotations
 
-from .base import RenderContext, join_blocks
+from dataclasses import dataclass
+from typing import Any, Iterable
+
+from ..options import PageOptions, ResolvedAttachment
 from .doc_model import ApiDoc
 from .doc_render import (
     attachment_rows,
@@ -20,6 +23,46 @@ from .doc_render import (
     title,
     version_line,
 )
+
+
+@dataclass(frozen=True)
+class RenderContext:
+    """
+    Everything a builder needs, resolved once before rendering starts.
+    """
+
+    spec: dict[str, Any]
+    options: PageOptions
+    spec_url: str = ""
+    attachments: tuple[ResolvedAttachment, ...] = ()
+
+    @property
+    def info(self) -> dict[str, Any]:
+        got = self.spec.get("info")
+        return got if isinstance(got, dict) else {}
+
+
+def join_blocks(blocks: Iterable[str]) -> str:
+    """
+    Join rendered blocks into page markdown.
+
+    The container owns separator policy: a block is a complete chunk of
+    markdown carrying no leading or trailing blank lines, and blocks are
+    separated by exactly one blank line. Blank blocks drop out, which is what
+    lets a builder return `[]` to omit its section entirely without the caller
+    testing for it.
+
+    Trailing `---` is dropped too: section builders emit it between items, so
+    the last one would otherwise dangle at the end of the page.
+    """
+    kept: list[str] = []
+    for block in blocks:
+        text = block.strip("\n")
+        if text.strip():
+            kept.append(text)
+    while kept and kept[-1].strip() == "---":
+        kept.pop()
+    return "\n\n".join(kept)
 
 
 class MarkdownRenderer:
@@ -64,3 +107,16 @@ class MarkdownRenderer:
 
     def render(self) -> str:
         return join_blocks(self.preamble() + self.sections())
+
+
+class PageBuilder:
+    """
+    What the plugin registers against a `type:`. A raw description in, a page
+    out; a subclass parses and hands the model to its renderer.
+    """
+
+    def __init__(self, ctx: RenderContext):
+        self.ctx = ctx
+
+    def build_page(self) -> str:
+        raise NotImplementedError

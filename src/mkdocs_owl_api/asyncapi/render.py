@@ -14,7 +14,7 @@ from typing import Any
 
 import yaml
 
-from ..common.base import PageBuilder, RenderContext
+from ..common.render import MarkdownRenderer, PageBuilder, RenderContext
 from ..common.primitives import (
     _anchor,
     _demote_headings,
@@ -23,7 +23,6 @@ from ..common.primitives import (
     _md_to_html,
     _pill,
 )
-from ..common.render import MarkdownRenderer
 from ..common.schema_model import Schema
 from ..common.schema_render import describe, format_type, render_schema
 from .model import AsyncApiDoc, Channel, Message, Operation, Server
@@ -369,8 +368,8 @@ class AsyncApiRenderer(MarkdownRenderer):
         return blocks
 
 
-class AsyncApiRenderPageBuilder(PageBuilder):
-    """Page builder for `type: asyncapi-new`."""
+class AsyncApiPageBuilder(PageBuilder):
+    """Page builder for `type: asyncapi`."""
 
     def __init__(self, ctx: RenderContext):
         super().__init__(ctx)

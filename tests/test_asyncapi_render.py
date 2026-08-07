@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import unittest
 
-from mkdocs_owl_api.asyncapi.render import AsyncApiRenderPageBuilder
-from mkdocs_owl_api.common.base import RenderContext
+from mkdocs_owl_api.asyncapi.render import AsyncApiPageBuilder
+from mkdocs_owl_api.common.render import RenderContext
 from mkdocs_owl_api.options import PageOptions
 
 from .fixtures import ASYNCAPI_V2, ASYNCAPI_V3
 
 
 def render(spec, **options):
-    opts = PageOptions(type="asyncapi-new", spec="spec.yml", **options)
-    return AsyncApiRenderPageBuilder(RenderContext(spec=spec, options=opts)).build_page()
+    opts = PageOptions(type="asyncapi", spec="spec.yml", **options)
+    return AsyncApiPageBuilder(RenderContext(spec=spec, options=opts)).build_page()
 
 
 class TestPage(unittest.TestCase):

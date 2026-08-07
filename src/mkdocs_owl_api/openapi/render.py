@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from ..common.base import PageBuilder, RenderContext
+from ..common.render import MarkdownRenderer, PageBuilder, RenderContext
 from ..common.primitives import (
     _anchor,
     _demote_headings,
@@ -22,7 +22,6 @@ from ..common.primitives import (
     _md_to_html,
     _pill,
 )
-from ..common.render import MarkdownRenderer
 from ..common.schema_model import UNSET, Schema
 from ..common.schema_render import (
     describe,
@@ -300,13 +299,11 @@ class OpenApiRenderer(MarkdownRenderer):
 
 
 
-class OpenApiRenderPageBuilder(PageBuilder):
+class OpenApiPageBuilder(PageBuilder):
     """
-    Page builder for `type: openapi-new`.
+    Page builder for `type: openapi`.
 
-    Parses the raw description once, then renders from the model. Overrides
-    `build_page` outright rather than using `preamble`/`sections`, which are the
-    dict-based hierarchy's contract.
+    Parses the raw description once, then renders from the model.
     """
 
     def __init__(self, ctx: RenderContext):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from mkdocs_owl_api.common.base import RenderContext
+from mkdocs_owl_api.common.render import RenderContext
 from mkdocs_owl_api.common.schema_model import (
     NumericConstraints,
     Schema,
@@ -14,15 +14,15 @@ from mkdocs_owl_api.common.schema_render import (
     property_rows,
     render_schema,
 )
-from mkdocs_owl_api.openapi.render import OpenApiRenderPageBuilder
+from mkdocs_owl_api.openapi.render import OpenApiPageBuilder
 from mkdocs_owl_api.options import PageOptions
 
 from .fixtures import API_V2, API_V30, API_V31
 
 
 def render(spec, **options):
-    opts = PageOptions(type="openapi-new", spec="spec.json", **options)
-    return OpenApiRenderPageBuilder(RenderContext(spec=spec, options=opts)).build_page()
+    opts = PageOptions(type="openapi", spec="spec.json", **options)
+    return OpenApiPageBuilder(RenderContext(spec=spec, options=opts)).build_page()
 
 
 class TestFormatType(unittest.TestCase):
