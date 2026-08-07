@@ -1,6 +1,6 @@
 [project]
 name = "mkdocs-owl-api"
-version = "0.1.0"
+version = "0.2.0"
 description = "MkDocs plugin from TechDocs Owl, renders AsyncAPI and OpenAPI specs into reference pages"
 readme = "README.md"
 license = "MIT"
@@ -28,11 +28,13 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Documentation",
     "Topic :: Software Development :: Documentation",
+    "Typing :: Typed",
 ]
 dependencies = [
-    "mkdocs>=1.5",
+    "mkdocs>=1.6",
     "PyYAML>=6.0",
     "Markdown>=3.4",
 ]
@@ -51,6 +53,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mkdocs_owl_api"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [dependency-groups]
 dev = [
