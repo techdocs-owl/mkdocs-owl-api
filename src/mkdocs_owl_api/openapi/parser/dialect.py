@@ -38,7 +38,7 @@ from .document import (
     read_response,
     read_servers,
 )
-from .refs import RefResolver
+from ...common.parse_refs import RefResolver
 from .security import read_v2_scheme, read_v3_scheme
 
 #: Schema keywords a 2.0 parameter or header carries directly, rather than

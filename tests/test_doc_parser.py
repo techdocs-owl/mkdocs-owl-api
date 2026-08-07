@@ -63,7 +63,7 @@ class TestContactAndLicense(unittest.TestCase):
     def test_empty_contact_is_none(self):
         self.assertIsNone(parse(read_contact, {})[0])
 
-    def test_absent_is_none_without_warning(self):
+    def test_absent_is_none_and_silent(self):
         self.assertEqual(parse(read_contact, None), (None, ()))
 
     def test_non_object_warns(self):
@@ -111,7 +111,7 @@ class TestTags(unittest.TestCase):
         self.assertEqual(tags, ())
         self.assertEqual(warnings[0].pointer, "#/0")
 
-    def test_one_bad_entry_does_not_lose_the_others(self):
+    def test_one_bad_entry_keeps_the_others(self):
         tags, warnings = parse(read_tags, ["nope", {"name": "pets"}])
         self.assertEqual([t.name for t in tags], ["pets"])
         self.assertEqual(len(warnings), 1)

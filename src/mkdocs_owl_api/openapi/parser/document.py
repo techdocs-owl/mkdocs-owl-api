@@ -38,7 +38,7 @@ from ..model import (
     Server,
     ServerVariable,
 )
-from .refs import RefResolver
+from ...common.parse_refs import RefResolver
 from .security import read_requirements
 
 #: 2.0 parameter locations that describe a body rather than a parameter. The

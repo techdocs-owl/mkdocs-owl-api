@@ -13,17 +13,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from ..common.base import PageBuilder, RenderContext, join_blocks
-from ..common.doc_render import (
-    attachment_rows,
-    attachments_table,
-    contact_line,
-    description_block,
-    external_docs_line,
-    license_line,
-    title,
-    version_line,
-)
+from ..common.base import PageBuilder, RenderContext
 from ..common.primitives import (
     _anchor,
     _demote_headings,
@@ -32,6 +22,7 @@ from ..common.primitives import (
     _md_to_html,
     _pill,
 )
+from ..common.render import MarkdownRenderer
 from ..common.schema_model import UNSET, Schema
 from ..common.schema_render import (
     describe,
@@ -40,7 +31,7 @@ from ..common.schema_render import (
     property_table,
     render_schema,
 )
-from .model import ApiDoc, MediaType, Operation, Parameter, Response, Server
+from .model import OpenApiDoc, MediaType, Operation, Parameter, Response, Server
 from .parser import parse_document
 
 #: Section for operations that declare no tag of their own.
@@ -55,42 +46,13 @@ def _method_pill(method) -> str:
     return _pill(method.value.upper(), kind=f"http-{method.value}")
 
 
-class MarkdownRenderer:
-    """Turns an `ApiDoc` into page blocks."""
+class OpenApiRenderer(MarkdownRenderer):
+    """Servers, endpoints grouped by tag, then the named schemas."""
 
-    def __init__(self, doc: ApiDoc, ctx: RenderContext):
-        self.doc = doc
-        self.options = ctx.options
-        self.ctx = ctx
+    doc: OpenApiDoc
 
-    # -- preamble -----------------------------------------------------------
-
-    def preamble(self) -> list[str]:
-        info = self.doc.info
-        blocks = [f"# {title(info, self.options.title)}"]
-        if self.options.intro:
-            blocks.append(self.options.intro)
-        if not self.options.hide_version:
-            blocks.extend(version_line(info))
-        blocks.extend(self.specification_line())
-        blocks.extend(attachments_table(attachment_rows(
-            self.ctx.spec_url, self.options.spec_label,
-            self.options.hide_download_link, self.ctx.attachments,
-        )))
-        blocks.extend(license_line(info))
-        blocks.extend(contact_line(info))
-        blocks.extend(external_docs_line(self.doc.external_docs))
-        blocks.extend(description_block(info))
-        return blocks
-
-    def specification_line(self) -> list[str]:
-        """Which specification the description was written against."""
-        if not self.doc.spec_version:
-            return []
-        return [
-            ":material-file-code: **Specification:** "
-            f"`{self.doc.spec_version_key} {self.doc.spec_version}`"
-        ]
+    def sections(self) -> list[str]:
+        return self.servers() + self.endpoints() + self.schemas()
 
     # -- servers ------------------------------------------------------------
 
@@ -336,13 +298,6 @@ class MarkdownRenderer:
             ))
         return blocks
 
-    def render(self) -> str:
-        blocks = self.preamble()
-        blocks.extend(self.servers())
-        blocks.extend(self.endpoints())
-        blocks.extend(self.schemas())
-        return join_blocks(blocks)
-
 
 
 class OpenApiRenderPageBuilder(PageBuilder):
@@ -361,4 +316,4 @@ class OpenApiRenderPageBuilder(PageBuilder):
         self.warnings = result.warnings
 
     def build_page(self) -> str:
-        return MarkdownRenderer(self.doc, self.ctx).render()
+        return OpenApiRenderer(self.doc, self.ctx).render()

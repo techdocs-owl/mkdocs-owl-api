@@ -134,10 +134,10 @@ def extensions_of(
     """
     Vendor extensions, kept verbatim.
 
-    `consumed` names extensions already promoted to a modelled field -
-    `x-nullable` becomes `Schema.nullable` - which are therefore no longer
-    extras. Keeping them here as well would record the same fact twice and make
-    two documents that differ only in dialect compare unequal.
+    `consumed` names extensions promoted to a modelled field - `x-nullable`
+    becomes `Schema.nullable` - so they are not repeated here. Recording the
+    same fact twice would make two documents that differ only in dialect
+    compare unequal.
     """
     return {
         str(key): value

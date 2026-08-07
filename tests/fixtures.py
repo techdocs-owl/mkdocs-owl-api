@@ -26,7 +26,7 @@ from mkdocs_owl_api.common.schema_model import (
     StringConstraints,
 )
 from mkdocs_owl_api.openapi.model import (
-    ApiDoc,
+    OpenApiDoc,
     Components,
     HttpMethod,
     MediaType,
@@ -65,6 +65,12 @@ PET_V31 = load("jsonschema-3.1")
 #: `schemes`/`host`/`basePath`, puts its body in the parameter list and its
 #: reusable objects at the root; the 3.x files use `servers`, `requestBody` and
 #: `components`.
+#: The same event-driven API described both ways. `asyncapi-2.6` keys channels
+#: by address and hangs `publish`/`subscribe` off them; `asyncapi-3.0` keys them
+#: by name and states operations - and their direction - in a map of its own.
+ASYNCAPI_V2 = load("asyncapi-2.6")
+ASYNCAPI_V3 = load("asyncapi-3.0")
+
 API_V2 = load("openapi-2.0")
 API_V30 = load("openapi-3.0")
 API_V31 = load("openapi-3.1")
@@ -173,7 +179,7 @@ def expected_api(dialect, spec_version, component_prefix):
         ),
     )
 
-    return ApiDoc(
+    return OpenApiDoc(
         dialect=dialect,
         spec_version=spec_version,
         info=Info(

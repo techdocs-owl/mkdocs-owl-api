@@ -75,14 +75,14 @@ class TestNullable(SchemaTestCase):
                 self.assertTrue(schema.nullable)
                 self.assertEqual(schema.types, ("string",))
 
-    def test_absent_is_not_nullable(self):
+    def test_nullability_defaults_to_false(self):
         self.assertFalse(self.read({"type": "string"}).nullable)
 
     def test_spellings_or_together(self):
         # `nullable: false` does not un-say a `null` in the type array.
         self.assertTrue(self.read({"type": ["string", "null"], "nullable": False}).nullable)
 
-    def test_consumed_extension_is_not_repeated(self):
+    def test_consumed_extension_becomes_a_field(self):
         schema = self.read({"type": "string", "x-nullable": True, "x-widget": "chip"})
         self.assertTrue(schema.nullable)
         self.assertEqual(schema.extensions, {"x-widget": "chip"})
@@ -116,7 +116,7 @@ class TestNumericConstraints(SchemaTestCase):
         self.assertEqual(self.numeric({"multipleOf": 2}),
                          NumericConstraints(multiple_of=2))
 
-    def test_zero_limit_is_not_dropped(self):
+    def test_zero_limit_is_kept(self):
         # `0` is falsy; the reader must test for absence, not truthiness.
         self.assertEqual(self.numeric({"exclusiveMinimum": 0}),
                          NumericConstraints(exclusive_minimum=0))
@@ -239,9 +239,8 @@ class TestRefSiblings(SchemaTestCase):
     """
     A keyword must read the same whether or not a `$ref` sits beside it.
 
-    Checked as a property rather than a list, because a hand-kept list of
-    "keywords that count" drifts out of step with the reader - which is how
-    `pattern` came to be dropped once.
+    Checked as a property rather than a list: a hand-kept list of "keywords
+    that count" drifts out of step with the reader.
     """
 
     REF = "#/components/schemas/Pet"
@@ -398,7 +397,7 @@ class TestWarnings(SchemaTestCase):
         self.assertIsNone(schema)
         self.assertIn("expected an object", warnings[0].message)
 
-    def test_unusable_property_is_dropped_not_fatal(self):
+    def test_unusable_property_is_dropped(self):
         schema, warnings = self.parse({"properties": {"good": {"type": "string"},
                                                       "bad": "nope"}})
         self.assertEqual(list(schema.properties), ["good"])

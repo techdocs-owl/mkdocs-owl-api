@@ -1,11 +1,11 @@
 """
 Local `$ref` resolution for the objects that are not schemas.
 
-Inside a Schema Object, `$ref` is a JSON Schema keyword that applies in place,
-so `Schema.ref` records it and nothing is followed. Elsewhere it is the OpenAPI
-Reference Object, which stands *for* another object rather than describing one -
-a parameter is not "a reference to a parameter", it is that parameter. Those are
-followed here and their target read in place.
+Inside a schema, `$ref` is a JSON Schema keyword that applies in place, so
+`Schema.ref` records it and nothing is followed. Elsewhere a reference stands
+*for* another object rather than describing one - a parameter is not "a
+reference to a parameter", it is that parameter. Those are followed here and
+their target read in place.
 
 External references are already inlined by the loader, so only local pointers
 reach this module.
@@ -16,8 +16,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ...common.parse_report import Reporter
-from ...common.parse_util import is_mapping
+from .parse_report import Reporter
+from .parse_util import is_mapping
 
 
 def _unescape(token: str) -> str:

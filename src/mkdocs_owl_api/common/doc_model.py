@@ -64,3 +64,24 @@ class Tag:
     description: str | None = None
     external_docs: ExternalDocs | None = None
     extensions: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ApiDoc:
+    """
+    What every described API states about itself, whatever wrote it.
+
+    A flavour adds its own dialect, its own notion of a server, and the objects
+    it describes. `spec_version` is the version the source declared, verbatim;
+    the key it was declared under is the flavour's to name.
+    """
+
+    spec_version: str = ""
+    info: Info = field(default_factory=Info)
+    tags: tuple[Tag, ...] = ()
+    external_docs: ExternalDocs | None = None
+    extensions: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def spec_version_key(self) -> str:
+        raise NotImplementedError

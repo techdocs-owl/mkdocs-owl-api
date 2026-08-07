@@ -81,7 +81,7 @@ class TestDialectDetection(ParserTestCase):
         self.assertEqual(doc.info.title, "T")
         self.assertIn("no `openapi` or `swagger`", warnings[0].message)
 
-    def test_non_object_is_not_fatal(self):
+    def test_non_object_yields_an_empty_document(self):
         doc, warnings = self.parse("nope")
         self.assertEqual(doc.info.title, "")
         self.assertEqual(len(warnings), 1)
@@ -134,7 +134,7 @@ class TestParameters(ParserTestCase):
         self.assertEqual(parameter.description, "How many.")
         self.assertIsNone(parameter.schema.description)
 
-    def test_v2_body_and_form_are_not_parameters(self):
+    def test_v2_body_and_form_become_a_request_body(self):
         doc = self.read(minimal_v2(paths={"/x": {"post": {
             "parameters": [
                 {"name": "q", "in": "query", "type": "string"},
@@ -406,7 +406,7 @@ class TestReferences(ParserTestCase):
         self.assertEqual((response.status_code, response.description),
                          ("404", "Missing."))
 
-    def test_schema_refs_are_not_inlined(self):
+    def test_schema_refs_are_kept(self):
         doc = self.read(minimal(
             components={"schemas": {"Pet": {"type": "object"}}},
             paths={"/x": {"get": {"responses": {"200": {
@@ -446,12 +446,12 @@ class TestPaths(ParserTestCase):
         self.assertEqual([(o.method, o.path) for o in doc.paths[0].operations],
                          [(HttpMethod.GET, "/pets"), (HttpMethod.POST, "/pets")])
 
-    def test_extension_keys_are_not_paths(self):
+    def test_extension_keys_are_skipped(self):
         doc = self.read(minimal(paths={"/pets": {"get": {"responses": {}}},
                                        "x-internal": {"note": "ignore me"}}))
         self.assertEqual([p.path for p in doc.paths], ["/pets"])
 
-    def test_one_bad_path_does_not_lose_the_others(self):
+    def test_one_bad_path_keeps_the_others(self):
         doc, warnings = self.parse(minimal(paths={"/good": {"get": {"responses": {}}},
                                                   "/bad": "nope"}))
         self.assertEqual([p.path for p in doc.paths], ["/good"])

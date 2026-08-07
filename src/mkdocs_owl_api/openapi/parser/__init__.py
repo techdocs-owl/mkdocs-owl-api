@@ -1,5 +1,5 @@
 """
-Entry point: a raw OpenAPI document in, an `ApiDoc` out.
+Entry point: a raw OpenAPI document in, an `OpenApiDoc` out.
 
 Which dialect wrote it is decided once, here, and never asked again.
 """
@@ -13,10 +13,10 @@ from typing import Any
 from ...common.doc_parser import read_external_docs, read_info, read_tags
 from ...common.parse_report import ParseWarning, Reporter
 from ...common.parse_util import extensions_of, is_mapping, kind_of, read_str
-from ..model import ApiDoc, OpenApiDialect
+from ..model import OpenApiDialect, OpenApiDoc
 from .dialect import Dialect, OpenApi3Dialect, Swagger2Dialect
 from .document import read_paths
-from .refs import RefResolver
+from ...common.parse_refs import RefResolver
 from .security import read_requirements
 
 __all__ = ["ParseResult", "parse_document"]
@@ -26,7 +26,7 @@ __all__ = ["ParseResult", "parse_document"]
 class ParseResult:
     """A parsed document and everything that could not be used along the way."""
 
-    doc: ApiDoc
+    doc: OpenApiDoc
     warnings: tuple[ParseWarning, ...] = ()
 
 
@@ -67,7 +67,7 @@ def parse_document(raw: Any) -> ParseResult:
     report = Reporter()
     if not is_mapping(raw):
         report.warn(f"expected an object, found {kind_of(raw)}")
-        return ParseResult(ApiDoc(), report.warnings)
+        return ParseResult(OpenApiDoc(), report.warnings)
 
     dialect_version, spec_version = _detect(raw, report)
     resolver = RefResolver(raw)
@@ -77,7 +77,7 @@ def parse_document(raw: Any) -> ParseResult:
         else OpenApi3Dialect(raw, resolver, dialect_version)
     )
 
-    doc = ApiDoc(
+    doc = OpenApiDoc(
         dialect=dialect_version,
         spec_version=spec_version,
         info=read_info(raw.get("info"), report.at("info")),

@@ -14,6 +14,7 @@ from mkdocs.plugins import BasePlugin, get_plugin_logger
 from mkdocs.structure.files import File
 
 from .asyncapi.page import AsyncApiPageBuilder
+from .asyncapi.render import AsyncApiRenderPageBuilder
 from .common.base import PageBuilder, RenderContext
 from .loader import _load_spec, _save_attachments, _save_spec
 from .openapi.page import OpenApiPageBuilder
@@ -34,6 +35,7 @@ _RENDERERS: dict[str, type[PageBuilder]] = {
     "openapi": OpenApiPageBuilder,
     "openapi-new": OpenApiRenderPageBuilder,
     "asyncapi": AsyncApiPageBuilder,
+    "asyncapi-new": AsyncApiRenderPageBuilder,
 }
 
 

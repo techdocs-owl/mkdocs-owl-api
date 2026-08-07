@@ -1,0 +1,128 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {
+    "title": "Streetlights",
+    "version": "1.0.0",
+    "description": "Smart streetlight telemetry."
+  },
+  "defaultContentType": "application/json",
+  "servers": {
+    "production": {
+      "host": "test.mosquitto.org:8883",
+      "protocol": "mqtt",
+      "description": "Public broker.",
+      "security": [
+        {
+          "$ref": "#/components/securitySchemes/apiKey"
+        }
+      ]
+    }
+  },
+  "channels": {
+    "lightMeasured": {
+      "address": "light/{streetlightId}/measured",
+      "description": "Measurements from a streetlight.",
+      "parameters": {
+        "streetlightId": {
+          "description": "The streetlight's id."
+        }
+      },
+      "bindings": {
+        "mqtt": {
+          "qos": 1
+        }
+      },
+      "messages": {
+        "LightMeasured": {
+          "$ref": "#/components/messages/LightMeasured"
+        }
+      }
+    }
+  },
+  "operations": {
+    "receiveLightMeasurement": {
+      "action": "receive",
+      "summary": "Take in a light measurement.",
+      "channel": {
+        "$ref": "#/channels/lightMeasured"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/lightMeasured/messages/LightMeasured"
+        }
+      ]
+    },
+    "sendLightMeasurement": {
+      "action": "send",
+      "summary": "Publish a light measurement.",
+      "channel": {
+        "$ref": "#/channels/lightMeasured"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/lightMeasured/messages/LightMeasured"
+        }
+      ]
+    }
+  },
+  "components": {
+    "messages": {
+      "LightMeasured": {
+        "name": "LightMeasured",
+        "title": "Light measured",
+        "summary": "Reports a light measurement.",
+        "contentType": "application/json",
+        "traits": [
+          {
+            "$ref": "#/components/messageTraits/commonHeaders"
+          }
+        ],
+        "payload": {
+          "$ref": "#/components/schemas/lightMeasuredPayload"
+        }
+      }
+    },
+    "schemas": {
+      "lightMeasuredPayload": {
+        "type": "object",
+        "properties": {
+          "lumens": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Light intensity measured in lumens."
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "lumens"
+        ]
+      }
+    },
+    "messageTraits": {
+      "commonHeaders": {
+        "headers": {
+          "type": "object",
+          "properties": {
+            "my-app-header": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKey": {
+        "type": "userPassword",
+        "description": "Broker credentials."
+      }
+    },
+    "parameters": {
+      "streetlightId": {
+        "description": "The streetlight's id."
+      }
+    }
+  }
+}

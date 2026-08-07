@@ -60,9 +60,9 @@ class TestFormatType(unittest.TestCase):
             "[`Pet`](#schemas-pet)",
         )
 
-    def test_anchor_does_not_depend_on_where_components_live(self):
-        # The old renderer keyed the anchor off the pointer, so a 2.0 document
-        # linked to `#definitions-pet` and landed nowhere.
+    def test_anchor_follows_the_component_name(self):
+        # The anchor comes from the component name, so two documents that keep
+        # their components in different places link to the same heading.
         self.assertEqual(
             format_type(Schema(ref="#/definitions/Pet", ref_name="Pet")),
             format_type(Schema(ref="#/components/schemas/Pet", ref_name="Pet")),
@@ -106,7 +106,7 @@ class TestDescribe(unittest.TestCase):
     def test_null_default_is_shown(self):
         self.assertIn("- Default: `None`", describe(Schema(default=None)))
 
-    def test_absent_default_is_not(self):
+    def test_absent_default_is_omitted(self):
         self.assertNotIn("Default", describe(Schema(types=("string",))))
 
     def test_closed_object_note(self):
@@ -142,7 +142,7 @@ class TestPropertyRows(unittest.TestCase):
         self.assertEqual([r.path for r in rows], ["tags[]", "tags[].id"])
         self.assertEqual(rows[0].type_override, "array of objects")
 
-    def test_a_reference_is_never_expanded(self):
+    def test_a_reference_stays_a_single_row(self):
         schema = Schema(properties={"pet": Schema(ref="#/c/Pet", ref_name="Pet")})
         self.assertEqual([r.path for r in property_rows(schema, max_depth=5)], ["pet"])
 

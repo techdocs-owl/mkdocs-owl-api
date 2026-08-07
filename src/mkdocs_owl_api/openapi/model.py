@@ -2,8 +2,8 @@
 OpenAPI document model.
 
 One dialect-neutral shape. Nothing here records which version the description
-came from, except `ApiDoc.dialect` and `ApiDoc.spec_version`, which exist so a
-page can print the source version.
+came from, except `OpenApiDoc.dialect` and the `spec_version` it inherits,
+which record the version the source declared.
 
 Scope is the part of the specification this plugin covers: `Link`, `Callback`,
 `webhooks`, `xml` and `pathItems` components are absent by design.
@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from ..common.doc_model import ExternalDocs, Info, Tag
+from ..common.doc_model import ApiDoc
 from ..common.schema_model import UNSET, Schema
 
 
@@ -257,7 +257,7 @@ class Operation:
     request_body: RequestBody | None = None
     responses: tuple[Response, ...] = ()
     #: Alternatives, any one of which suffices; each inner tuple must be
-    #: satisfied in full. `None` inherits `ApiDoc.security`, whereas an empty
+    #: satisfied in full. `None` inherits `OpenApiDoc.security`, whereas an empty
     #: tuple opts out of it.
     security: tuple[tuple[SecurityRequirement, ...], ...] | None = None
     servers: tuple[Server, ...] = ()
@@ -293,27 +293,21 @@ class Components:
 
 
 @dataclass(frozen=True)
-class ApiDoc:
+class OpenApiDoc(ApiDoc):
     """
-    A described API.
+    OpenApi doc object.
 
-    `dialect` and `spec_version` are the one concession to where the description
-    came from: they record the version the source declared. Branching on them
-    for anything else reintroduces the version coupling this model removes.
+    `dialect` is the one concession to where the description came from.
+    Branching on it for anything else reintroduces the version coupling this
+    model removes.
     """
 
     dialect: OpenApiDialect = OpenApiDialect.V3_1
-    #: Verbatim root value, e.g. `3.0.2` - the enum carries only the minor.
-    spec_version: str = ""
-    info: Info = field(default_factory=Info)
     servers: tuple[Server, ...] = ()
-    tags: tuple[Tag, ...] = ()
     paths: tuple[PathItem, ...] = ()
     components: Components = field(default_factory=Components)
     #: Document-wide default; see `Operation.security` for the override rules.
     security: tuple[tuple[SecurityRequirement, ...], ...] = ()
-    external_docs: ExternalDocs | None = None
-    extensions: dict[str, Any] = field(default_factory=dict)
 
     @property
     def spec_version_key(self) -> str:
