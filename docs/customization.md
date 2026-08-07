@@ -1,33 +1,43 @@
 # Specification Page
 
-Turn any Markdown page into a rendered API reference by adding a single  frontmatter key - `techdocs-owl-openapi:` for an
-[OpenAPI](https://www.openapis.org) 3 spec, or `techdocs-owl-asyncapi:` for an [AsyncAPI](https://www.asyncapi.com) 2
-or 3 spec. The plugin reads the spec at build time and writes the
-reference body into the page.
+Turn any Markdown page into a rendered API reference by adding a single
+`techdocs-owl:` frontmatter key. Its `type:` selects the flavour - `openapi`
+for an [OpenAPI](https://www.openapis.org) 3 spec, `asyncapi` for an
+[AsyncAPI](https://www.asyncapi.com) 2 or 3 spec. The plugin reads the spec at
+build time and writes the reference body into the page.
 
-## Short form
+`techdocs-owl:` is shared across the TechDocs Owl plugin family, so a `type:`
+this plugin does not handle is left untouched for a sibling plugin to render.
 
-A bare path or URL string - everything else falls back to defaults:
+## Minimal form
+
+`type:` and `spec:` are the only required keys - everything else falls back to
+the site-wide defaults:
 
 ```markdown
 ---
-techdocs-owl-openapi: https://petstore3.swagger.io/api/v3/openapi.json
+techdocs-owl:
+  type: openapi
+  spec: https://petstore3.swagger.io/api/v3/openapi.json
 ---
 ```
 
 ```markdown
 ---
-techdocs-owl-asyncapi: ../specs/asyncapi.yml
+techdocs-owl:
+  type: asyncapi
+  spec: ../specs/asyncapi.yml
 ---
 ```
 
-## Full form
+## With options
 
-A mapping with a `spec:` key plus any options:
+Add any of the keys below alongside `type:` and `spec:`:
 
 ```markdown
 ---
-techdocs-owl-openapi:
+techdocs-owl:
+  type: openapi
   spec: ../specs/openapi.yml
   title: My REST API
   intro: One-paragraph intro shown above the spec body.
@@ -36,7 +46,8 @@ techdocs-owl-openapi:
 
 ```markdown
 ---
-techdocs-owl-asyncapi:
+techdocs-owl:
+  type: asyncapi
   spec: https://schema.example.com/my-service-asyncapi
   title: My Service Events
   intro: One-paragraph intro shown above the spec body.
@@ -45,12 +56,13 @@ techdocs-owl-asyncapi:
 
 # Common Configuration
 
-Following options apply to both `techdocs-owl-openapi` and `techdocs-owl-asyncapi`.
+Following options apply to every `type:`.
 Example:
 
 ```markdown
 ---
-techdocs-owl-openapi:
+techdocs-owl:
+  type: openapi
   spec: ../specs/openapi.yml
   title: My REST API
   intro: One-paragraph intro shown above the spec body.
@@ -65,6 +77,7 @@ techdocs-owl-openapi:
 
 | Key | Type | Default | Effect |
 |---|---|---|---|
+| `type` | string | - | **Required.** `openapi` or `asyncapi`. |
 | `spec` | string | - | **Required.** Path or URL to the spec file. |
 | `title` | string | `info.title` | Page H1. |
 | `intro` | markdown | - | Shown between the title and metadata block. |
@@ -93,7 +106,8 @@ a mapping with a `path:` plus optional `title:` and `description:`:
 
 ```markdown
 ---
-techdocs-owl-openapi:
+techdocs-owl:
+  type: openapi
   spec: ../specs/openapi.yml
   attachments:
     - ../specs/postman-collection.json
@@ -126,7 +140,7 @@ than failing the build.
 
 # OpenAPI Configuration
 
-`techdocs-owl-openapi` accepts an OpenAPI 3 document and uses only the
+`type: openapi` accepts an OpenAPI 3 document and uses only the
 [common options](#common-configuration) above - there are no OpenAPI-only keys.
 
 It renders, in order, skipping any section absent from the spec:
@@ -141,7 +155,7 @@ See the [Petstore example](examples/petstore.md) for a live render.
 
 # AsyncAPI Configuration
 
-`techdocs-owl-asyncapi` accepts an AsyncAPI 2.x or 3.0 document. On top
+`type: asyncapi` accepts an AsyncAPI 2.x or 3.0 document. On top
 of the [common options](#common-configuration), it adds a few keys for
 trimming sections that are specific to event-driven specs:
 

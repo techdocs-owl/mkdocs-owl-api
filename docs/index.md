@@ -18,7 +18,9 @@ always in sync with the spec.
 
 ```markdown
 ---
-techdocs-owl-openapi: ../specs/openapi.yml
+techdocs-owl:
+  type: openapi
+  spec: ../specs/openapi.yml
 ---
 ```
 

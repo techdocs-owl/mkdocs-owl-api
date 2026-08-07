@@ -29,6 +29,10 @@ theme:
     - content.code.copy
     - toc.follow
   palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: custom
@@ -42,7 +46,7 @@ theme:
       accent: custom
       toggle:
         icon: material/weather-sunny
-        name: Switch to light mode
+        name: Switch to system preference
 
 extra_css:
   - stylesheets/extra.css
