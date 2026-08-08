@@ -3,7 +3,8 @@
 Turn any Markdown page into a rendered API reference by adding a single
 `techdocs-owl:` frontmatter key. Its `type:` selects the flavour - `openapi`
 for an [OpenAPI](https://www.openapis.org) 3 spec, `asyncapi` for an
-[AsyncAPI](https://www.asyncapi.com) 2 or 3 spec. The plugin reads the spec at
+[AsyncAPI](https://www.asyncapi.com) 2 or 3 spec, `jsonschema` for a standalone
+[JSON Schema](https://json-schema.org) document. The plugin reads the spec at
 build time and writes the reference body into the page.
 
 `techdocs-owl:` is shared across the TechDocs Owl plugin family, so a `type:`
@@ -77,7 +78,7 @@ techdocs-owl:
 
 | Key | Type | Default | Effect |
 |---|---|---|---|
-| `type` | string | - | **Required.** `openapi` or `asyncapi`. |
+| `type` | string | - | **Required.** `openapi`, `asyncapi` or `jsonschema`. |
 | `spec` | string | - | **Required.** Path or URL to the spec file. |
 | `title` | string | `info.title` | Page H1. |
 | `intro` | markdown | - | Shown between the title and metadata block. |
@@ -177,3 +178,27 @@ It renders, in order, skipping any section absent from the spec:
 7. **Traits** - message and operation traits.
 
 See the [Streetlight example](examples/streetlight.md) for a live render.
+
+# JSON Schema Configuration
+
+`type: jsonschema` accepts a standalone JSON Schema document - a `.json` or
+`.yaml` file whose contents *are* a schema, rather than an API description that
+contains schemas. Every dialect from draft-04 to 2020-12 is read; `$schema`
+names which, and an unrecognised or missing one is read as 2020-12.
+
+It uses only the [common options](#common-configuration) above, of which
+`schema_depth` and `hide_internal` are the ones that bite. There are no
+JSON-Schema-only keys.
+
+It renders, in order, skipping any section absent from the document:
+
+1. **Info** - `title` and `description` from the root, the dialect, the
+   download link, and `$id` if the document states one. A schema declares no
+   version, licence or contact, so those lines never appear.
+2. **Schema** - the document's own root: type, composition, property table.
+   Omitted for a file that is only definitions.
+3. **Definitions** - one section per entry in `$defs` (2019-09 and later) or
+   `definitions` (draft-04 through draft-07), with property tables and
+   constraints. Every `$ref` elsewhere on the page links to the section here.
+
+See the [Compose Specification example](examples/compose-spec.md) for a live render.

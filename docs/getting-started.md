@@ -19,7 +19,7 @@ The bundled stylesheet is injected automatically.
 ## Add a reference page
 
 Create a Markdown page with a `techdocs-owl:` frontmatter key and an **empty body**.
-The `type:` key selects the spec flavour - `openapi` or `asyncapi`.
+The `type:` key selects the spec flavour - `openapi`, `asyncapi` or `jsonschema`.
 The plugin fills in the body at build time.
 
 ```markdown

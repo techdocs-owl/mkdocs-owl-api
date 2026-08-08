@@ -21,8 +21,8 @@ from ...common.parse_util import (
     read_str,
     read_str_tuple,
 )
-from ...common.schema_model import UNSET, Schema
-from ...common.schema_parser import read_schema
+from ...jsonschema.schema_model import UNSET, Schema
+from ...jsonschema.schema_parser import read_schema
 from ..model import (
     Components,
     MediaType,

@@ -1,8 +1,9 @@
 """
 Document metadata common to every spec flavour.
 
-Knows nothing about schemas, paths or channels, so both `schema_model` and the
-flavour models can import it.
+Knows nothing about schemas, paths or channels, so every format package can
+import it - including `jsonschema`, whose `schema_model` hangs `ExternalDocs`
+off a schema node.
 """
 
 from __future__ import annotations

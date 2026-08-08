@@ -25,7 +25,7 @@ from ...common.parse_util import (
     read_str_map,
     read_str_tuple,
 )
-from ...common.schema_parser import read_schema
+from ...jsonschema.schema_parser import read_schema
 from ..model import (
     CorrelationId,
     Message,

@@ -23,7 +23,7 @@ from ...common.parse_util import (
     read_str,
     read_str_tuple,
 )
-from ...common.schema_model import UNSET
+from ...jsonschema.schema_model import UNSET
 from ..model import (
     Encoding,
     Example,

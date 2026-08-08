@@ -19,7 +19,7 @@ from enum import Enum
 from typing import Any
 
 from ..common.doc_model import ApiDoc, ExternalDocs, Tag
-from ..common.schema_model import Schema
+from ..jsonschema.schema_model import Schema
 
 
 class AsyncApiDialect(Enum):

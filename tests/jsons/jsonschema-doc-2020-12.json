@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.test/order.schema.json",
+  "title": "Order",
+  "description": "An order placed against the catalogue.",
+  "type": "object",
+  "required": ["id", "lines"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Opaque order identifier.",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "customer": {
+      "$ref": "#/$defs/Customer",
+      "description": "Who placed the order."
+    },
+    "lines": {
+      "type": "array",
+      "description": "One entry per catalogue item ordered.",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Line" }
+    },
+    "note": {
+      "type": ["string", "null"],
+      "description": "Free text attached at checkout."
+    }
+  },
+  "$defs": {
+    "Customer": {
+      "type": "object",
+      "title": "Customer",
+      "description": "The account an order is billed to.",
+      "required": ["email"],
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "tier": {
+          "type": "string",
+          "description": "Pricing band.",
+          "enum": ["standard", "premium"],
+          "default": "standard"
+        }
+      }
+    },
+    "Line": {
+      "type": "object",
+      "title": "Line",
+      "description": "One catalogue item and how many of it.",
+      "required": ["sku", "quantity"],
+      "properties": {
+        "sku": { "type": "string", "pattern": "^[A-Z]{3}-[0-9]{4}$" },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "exclusiveMaximum": 1000
+        }
+      }
+    }
+  }
+}

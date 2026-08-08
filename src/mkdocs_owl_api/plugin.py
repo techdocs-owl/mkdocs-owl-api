@@ -15,6 +15,7 @@ from mkdocs.structure.files import File
 
 from .asyncapi.render import AsyncApiPageBuilder
 from .common.render import PageBuilder, RenderContext
+from .jsonschema.render import JsonSchemaPageBuilder
 from .loader import _load_spec, _save_attachments, _save_spec
 from .openapi.render import OpenApiPageBuilder
 from .options import PageOptions, site_default
@@ -32,6 +33,7 @@ _FRONTMATTER_KEY = "techdocs-owl"
 _RENDERERS: dict[str, type[PageBuilder]] = {
     "openapi": OpenApiPageBuilder,
     "asyncapi": AsyncApiPageBuilder,
+    "jsonschema": JsonSchemaPageBuilder,
 }
 
 

@@ -3,7 +3,7 @@ OpenAPI page renderer, driven by the model.
 
 `MarkdownRenderer` holds what is constant for a page - the options, and the set
 of schema names that can be linked to - and each section is a method returning
-blocks. Anything needing no page state is a function in `common.schema_render`.
+blocks. Anything needing no page state is a function in `jsonschema.schema_render`.
 
 The renderer never learns which dialect the description came from: a 2.0 file
 and a 3.1 file that describe the same API produce the same page.
@@ -22,8 +22,8 @@ from ..common.primitives import (
     _md_to_html,
     _pill,
 )
-from ..common.schema_model import UNSET, Schema
-from ..common.schema_render import (
+from ..jsonschema.schema_model import UNSET, Schema
+from ..jsonschema.schema_render import (
     describe,
     format_type,
     property_rows,

@@ -23,8 +23,8 @@ from ..common.primitives import (
     _md_to_html,
     _pill,
 )
-from ..common.schema_model import Schema
-from ..common.schema_render import describe, format_type, render_schema
+from ..jsonschema.schema_model import Schema
+from ..jsonschema.schema_render import describe, format_type, render_schema
 from .model import AsyncApiDoc, Channel, Message, Operation, Server
 from .parser import parse_document
 

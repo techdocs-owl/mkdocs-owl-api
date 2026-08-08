@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .primitives import (
+from ..common.primitives import (
     _anchor,
     _demote_headings,
     _html_table,

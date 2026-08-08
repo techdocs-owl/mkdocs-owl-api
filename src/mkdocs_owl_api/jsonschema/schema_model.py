@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .doc_model import ExternalDocs
+from ..common.doc_model import ExternalDocs
 
 
 class _Unset:

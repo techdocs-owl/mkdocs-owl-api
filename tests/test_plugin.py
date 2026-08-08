@@ -130,6 +130,31 @@ class TestOnPageMarkdownEndToEnd(unittest.TestCase):
             self.assertIn("# OAS", out)
             self.assertIn("`/p`", out)
 
+    def test_jsonschema_render(self):
+        schema = json.dumps({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Order", "type": "object",
+            "properties": {"customer": {"$ref": "#/$defs/Customer"}},
+            "$defs": {"Customer": {"type": "object",
+                                   "properties": {"email": {"type": "string"}}}},
+        })
+        plugin = _plugin()
+        with tempfile.TemporaryDirectory() as t:
+            files = Files([])
+            root, page, config = self._setup(
+                t, {"techdocs-owl": {"type": "jsonschema", "spec": "spec.json"}},
+                schema, spec_name="spec.json")
+            out = plugin.on_page_markdown("orig", page=page, config=config, files=files)
+            self.assertIn("# Order", out)
+            self.assertIn("**Specification:** `json-schema 2020-12`", out)
+            self.assertIn("### Customer {#schemas-customer}", out)
+            # The reference reaches the heading rendered above it.
+            self.assertIn('href="#schemas-customer"', out)
+            # The schema joins the build as a generated file, like any other spec.
+            self.assertIsNotNone(
+                files.get_file_from_path("assets/techdocs-owl-api/demo.json"))
+            self.assertFalse((root / "docs/assets").exists())
+
     def test_non_string_spec_is_coerced_then_not_found(self):
         """`spec:` is unvalidated - it is stringified, so the loader reports the miss."""
         for spec in (123, ["a.yml"]):

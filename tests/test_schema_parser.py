@@ -4,7 +4,7 @@ import unittest
 from dataclasses import replace
 
 from mkdocs_owl_api.common.parse_report import Reporter
-from mkdocs_owl_api.common.schema_model import (
+from mkdocs_owl_api.jsonschema.schema_model import (
     UNSET,
     ArrayConstraints,
     Discriminator,
@@ -13,7 +13,7 @@ from mkdocs_owl_api.common.schema_model import (
     Schema,
     StringConstraints,
 )
-from mkdocs_owl_api.common.schema_parser import read_schema
+from mkdocs_owl_api.jsonschema.schema_parser import read_schema
 
 from .fixtures import PET_V2, PET_V30, PET_V31, expected_pet
 

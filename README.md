@@ -1,7 +1,7 @@
 # techdocs-owl-api
 
-MkDocs plugin that renders AsyncAPI and OpenAPI specs into reference pages
-at build time.
+MkDocs plugin that renders AsyncAPI, OpenAPI and JSON Schema specs into
+reference pages at build time.
 
 Check out [documentation](https://techdocs-owl.github.io/mkdocs-owl-api/).
 
@@ -29,9 +29,9 @@ techdocs-owl:
 ---
 ```
 
-Supports AsyncAPI 2.x/3.0 and OpenAPI 3.x (YAML or JSON), local paths or
-HTTP(S) URLs, recursive `$ref` resolution, and a bundled stylesheet
-(auto-injected, no `extra_css` setup needed).
+Supports AsyncAPI 2.x/3.0, OpenAPI 3.x and JSON Schema draft-04 through 2020-12
+(YAML or JSON), local paths or HTTP(S) URLs, recursive `$ref` resolution, and a
+bundled stylesheet (auto-injected, no `extra_css` setup needed).
 
 ## Site-wide defaults
 
@@ -64,7 +64,7 @@ techdocs-owl:
 
 | Key | Type | Default | Effect |
 |---|---|---|---|
-| `type` | string | - | **Required.** `openapi` or `asyncapi`. |
+| `type` | string | - | **Required.** `openapi`, `asyncapi` or `jsonschema`. |
 | `spec` | string | - | **Required.** Path or URL to the spec file. |
 | `title` | string | `info.title` | Page H1. |
 | `intro` | markdown | - | Shown between the title and metadata block. |
@@ -93,7 +93,7 @@ techdocs-owl:
 
 | Key | Type | Default | Effect |
 |---|---|---|---|
-| `type` | string | - | **Required.** `openapi` or `asyncapi`. |
+| `type` | string | - | **Required.** `openapi`, `asyncapi` or `jsonschema`. |
 | `spec` | string | - | **Required.** Path or URL to the spec file. |
 | `title` | string | `info.title` | Page H1. |
 | `intro` | markdown | - | Shown between the title and metadata block. |
@@ -105,6 +105,27 @@ techdocs-owl:
 
 Renders: info, Servers, endpoints grouped by tag (parameters, request
 body, responses, security), Schemas.
+
+## JSON Schema pages
+
+```markdown
+---
+techdocs-owl:
+  type: jsonschema
+  spec: ../schemas/product.json
+---
+```
+
+A standalone schema document, in any dialect from draft-04 to 2020-12 -
+`$schema` names which, and an unrecognised or missing one is read as 2020-12.
+Uses the common options above; `schema_depth` and `hide_internal` are the ones
+that apply.
+
+Renders: info (`title`, `description`, dialect, `$id`), the root Schema, then
+Definitions - one section per `$defs`/`definitions` entry, which every `$ref`
+on the page links to. Keywords the plugin does not model are dropped silently;
+`patternProperties` is the notable one, so a pattern-keyed map renders as a
+plain `object`.
 
 ## Attachments
 

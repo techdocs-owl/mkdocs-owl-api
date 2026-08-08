@@ -4,6 +4,7 @@ nav:
   - Overview: index.md
   - Streetlight API: api/streetlight-reference.md
   - Petstore Reference: api/petstore.md
+  - Product Schema: api/product-schema.md
 
 theme:
   name: material

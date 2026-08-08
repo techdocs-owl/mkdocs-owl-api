@@ -16,7 +16,7 @@ from enum import Enum
 from typing import Any
 
 from ..common.doc_model import ApiDoc
-from ..common.schema_model import UNSET, Schema
+from ..jsonschema.schema_model import UNSET, Schema
 
 
 class OpenApiDialect(Enum):

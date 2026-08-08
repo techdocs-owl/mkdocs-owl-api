@@ -19,7 +19,7 @@ import json
 from pathlib import Path
 
 from mkdocs_owl_api.common.doc_model import Contact, ExternalDocs, Info, License, Tag
-from mkdocs_owl_api.common.schema_model import (
+from mkdocs_owl_api.jsonschema.schema_model import (
     ArrayConstraints,
     NumericConstraints,
     Schema,
@@ -41,6 +41,7 @@ from mkdocs_owl_api.openapi.model import (
     SecuritySchemeType,
     Server,
 )
+from mkdocs_owl_api.jsonschema.model import JsonSchemaDialect, JsonSchemaDoc
 from mkdocs_owl_api.openapi.model import Header as ResponseHeader
 
 _JSONS = Path(__file__).parent / "jsons"
@@ -74,6 +75,14 @@ ASYNCAPI_V3 = load("asyncapi-3.0")
 API_V2 = load("openapi-2.0")
 API_V30 = load("openapi-3.0")
 API_V31 = load("openapi-3.1")
+
+#: The same schema *document* written to two dialects. `-doc-` distinguishes
+#: these from `jsonschema-2.0/3.0/3.1` above, which are bare schema nodes.
+#: `draft-04` spells its identity `id`, keeps definitions in `definitions` and
+#: states an exclusive bound as a boolean beside `maximum`; `2020-12` uses
+#: `$id`, `$defs` and a numeric `exclusiveMaximum`.
+SCHEMA_DOC_DRAFT04 = load("jsonschema-doc-draft-04")
+SCHEMA_DOC_2020_12 = load("jsonschema-doc-2020-12")
 
 
 # --------------------------------------------------------------------------
@@ -205,4 +214,72 @@ def expected_api(dialect, spec_version, component_prefix):
         security=((SecurityRequirement("api_key", ()),),),
         external_docs=ExternalDocs(url="https://example.test/docs",
                                    description="More"),
+    )
+
+
+def expected_order(dialect, spec_version, definition_prefix):
+    """
+    The Order document as it must parse, whichever dialect wrote it.
+
+    Only three things a dialect controls reach the model: the label for the
+    dialect itself, the `$schema` URI verbatim, and the pointer prefix. Everything
+    else - the boolean-versus-numeric exclusive bound, `id` versus `$id`,
+    `definitions` versus `$defs` - is resolved on the way in, which is the claim
+    this one builder makes.
+    """
+    def ref(name, **keywords):
+        return Schema(ref=f"{definition_prefix}{name}", ref_name=name, **keywords)
+
+    customer = Schema(
+        title="Customer",
+        description="The account an order is billed to.",
+        types=("object",),
+        required=("email",),
+        properties={
+            "email": Schema(types=("string",), format="email"),
+            "tier": Schema(types=("string",), description="Pricing band.",
+                           enum=("standard", "premium"), default="standard"),
+        },
+    )
+    line = Schema(
+        title="Line",
+        description="One catalogue item and how many of it.",
+        types=("object",),
+        required=("sku", "quantity"),
+        properties={
+            "sku": Schema(types=("string",),
+                          string_constraints=StringConstraints(
+                              pattern="^[A-Z]{3}-[0-9]{4}$")),
+            "quantity": Schema(types=("integer",),
+                               numeric_constraints=NumericConstraints(
+                                   minimum=1, exclusive_maximum=1000)),
+        },
+    )
+    root = Schema(
+        title="Order",
+        description="An order placed against the catalogue.",
+        types=("object",),
+        required=("id", "lines"),
+        additional_properties=False,
+        properties={
+            "id": Schema(types=("string",), description="Opaque order identifier.",
+                         string_constraints=StringConstraints(min_length=1,
+                                                              max_length=32)),
+            "customer": ref("Customer", description="Who placed the order."),
+            "lines": Schema(types=("array",),
+                            description="One entry per catalogue item ordered.",
+                            items=ref("Line"),
+                            array_constraints=ArrayConstraints(min_items=1)),
+            "note": Schema(types=("string",), nullable=True,
+                           description="Free text attached at checkout."),
+        },
+    )
+    return JsonSchemaDoc(
+        dialect=dialect,
+        spec_version=spec_version,
+        schema_id="https://example.test/order.schema.json",
+        info=Info(title="Order",
+                  description="An order placed against the catalogue."),
+        root=root,
+        definitions={"Customer": customer, "Line": line},
     )

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.test/schemas/product.json",
+  "title": "Product",
+  "description": "A single item in the catalogue, as stored and as returned by the catalogue API.",
+  "type": "object",
+  "required": ["sku", "name", "price"],
+  "additionalProperties": false,
+  "properties": {
+    "sku": {
+      "type": "string",
+      "description": "Stock keeping unit. Stable for the life of the product.",
+      "pattern": "^[A-Z]{3}-[0-9]{4}$",
+      "examples": ["ACM-0042"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name, as shown in the storefront.",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "price": {
+      "$ref": "#/$defs/Money",
+      "description": "Current list price, before any discount."
+    },
+    "dimensions": {
+      "$ref": "#/$defs/Dimensions",
+      "description": "Physical size, absent for digital goods."
+    },
+    "tags": {
+      "type": "array",
+      "description": "Free-form labels used for search and merchandising.",
+      "uniqueItems": true,
+      "items": { "type": "string" }
+    },
+    "discontinued": {
+      "type": "boolean",
+      "description": "Whether the product may still be ordered.",
+      "default": false
+    },
+    "replacedBy": {
+      "type": ["string", "null"],
+      "description": "SKU of the successor product, once discontinued."
+    }
+  },
+  "$defs": {
+    "Money": {
+      "type": "object",
+      "title": "Money",
+      "description": "An amount in a single currency. Minor units, to avoid floating point.",
+      "required": ["amount", "currency"],
+      "properties": {
+        "amount": {
+          "type": "integer",
+          "description": "Value in the currency's minor unit, so 1250 is 12.50.",
+          "minimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "description": "ISO 4217 alphabetic code.",
+          "pattern": "^[A-Z]{3}$",
+          "examples": ["EUR"]
+        }
+      }
+    },
+    "Dimensions": {
+      "type": "object",
+      "title": "Dimensions",
+      "description": "Packed size, used for shipping quotes.",
+      "required": ["unit"],
+      "properties": {
+        "unit": {
+          "type": "string",
+          "description": "Unit the three lengths are given in.",
+          "enum": ["mm", "cm", "in"],
+          "default": "cm"
+        },
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "depth": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    }
+  }
+}

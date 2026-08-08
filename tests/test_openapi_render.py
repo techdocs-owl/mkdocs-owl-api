@@ -3,12 +3,12 @@ from __future__ import annotations
 import unittest
 
 from mkdocs_owl_api.common.render import RenderContext
-from mkdocs_owl_api.common.schema_model import (
+from mkdocs_owl_api.jsonschema.schema_model import (
     NumericConstraints,
     Schema,
     StringConstraints,
 )
-from mkdocs_owl_api.common.schema_render import (
+from mkdocs_owl_api.jsonschema.schema_render import (
     describe,
     format_type,
     property_rows,

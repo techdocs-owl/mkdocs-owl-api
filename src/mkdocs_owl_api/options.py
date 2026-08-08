@@ -12,7 +12,11 @@ _FALSY = frozenset({"false", "no", "off", "0", ""})
 #: `type:` -> how that flavour is spelled in prose. Keyed like `_RENDERERS` in
 #: `plugin.py`; a `type:` this plugin does not own never reaches a renderer, so
 #: the fallback is a guard rather than a supported path.
-_SPEC_LABELS = {"openapi": "OpenAPI", "asyncapi": "AsyncAPI"}
+_SPEC_LABELS = {
+    "openapi": "OpenAPI",
+    "asyncapi": "AsyncAPI",
+    "jsonschema": "JSON Schema",
+}
 
 
 def _as_bool(value: Any, default: bool = False) -> bool:
