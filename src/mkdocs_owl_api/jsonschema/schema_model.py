@@ -8,9 +8,18 @@ applies it in place, alongside whatever else the node declares.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from ..common.doc_model import ExternalDocs
+
+
+class SchemaShape(Enum):
+    REF = "ref"
+    OBJECT = "object"
+    ARRAY = "array"
+    COMPOSITION = "composition"
+    PRIMITIVE = "primitive"
 
 
 class _Unset:
@@ -151,3 +160,18 @@ class Schema:
     def is_property_required(self, name: str) -> bool:
         """Whether the named property is listed in `required`."""
         return name in self.required
+
+    def schema_shape(self) -> SchemaShape:
+        if self.is_ref():
+            return SchemaShape.REF
+        if self.properties or self.additional_properties is not None:
+            return SchemaShape.OBJECT
+        if self.items or self.prefix_items:
+            return SchemaShape.ARRAY
+        if self.all_of or self.any_of or self.one_of:
+            return SchemaShape.COMPOSITION
+        if "object" in self.types:
+            return SchemaShape.OBJECT
+        if "array" in self.types:
+            return SchemaShape.ARRAY
+        return SchemaShape.PRIMITIVE

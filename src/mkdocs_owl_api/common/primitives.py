@@ -207,6 +207,16 @@ def _html_table(headers: "Sequence[str]", rows: "Iterable[str]") -> str:
     return "\n".join(out)
 
 
+def _html_list(items: "Iterable[str]", *, kind: str) -> str:
+    """
+    Wrap pre-rendered item bodies in a `<ul>`.
+    """
+    body = "\n".join(f"<li>{item}</li>" for item in items)
+    if not body:
+        return ""
+    return f'<ul class="techdocs-owl-api-{kind}">\n{body}\n</ul>'
+
+
 def _table_cell(text: Any) -> str:
     """Flatten arbitrary (user-supplied) text so it can't break out of a table cell."""
     return " ".join(str(text or "").split()).replace("|", "\\|")

@@ -15,16 +15,21 @@ from dataclasses import dataclass
 from ..common.primitives import (
     _anchor,
     _demote_headings,
+    _html_list,
     _html_table,
     _infer_enum_type,
     _md_to_html,
     _pill,
     _property_name_html,
 )
-from .schema_model import UNSET, Schema
+from .schema_model import UNSET, Schema, SchemaShape
 
 #: Section a schema reference points into.
 _SCHEMAS = "schemas"
+
+#: How far composition alternatives nest before the renderer stops listing
+#: Hardcoded at the moment.
+_MAX_ALTERNATIVE_DEPTH = 3
 
 #: Vendor extension marking a property as not for publication.
 _INTERNAL = "x-internal-only"
@@ -244,73 +249,211 @@ def property_table(rows: list[PropertyRow]) -> list[str]:
     return [_html_table(PROPERTY_HEADERS, [render_property_row(r) for r in rows])]
 
 
-def _composition(schema: Schema) -> tuple[list[str], dict[str, Schema], set[str]]:
+def _is_renderable(member: Schema) -> bool:
     """
-    The composition lines, plus the properties an inline `allOf` member folds in.
+    Whether a composition member has anything to show.
+    """
+    return member != Schema()
 
-    A referenced member is named and linked; an inline one is merged, because
-    its properties belong to the same object and a reader wants one table.
+
+def _composition_alternative(
+    member: Schema, *, hide_internal: bool, max_depth: int, depth: int,
+) -> str:
+    """
+    One member of a composition, as the body of an `<li>`.
+    """
+    parts = [_md_to_html(
+        ref_link(member) if member.is_ref() else f"`{format_type(member)}`",
+        inline=True,
+    )]
+
+    if member.is_ref():
+        described = (member.description or "").strip()
+        if described:
+            parts.append(_md_to_html(described))
+        return "\n".join(parts)
+
+    described = describe(member)
+    if described:
+        parts.append(_md_to_html(described))
+
+    nested = _composition_alternatives(
+        member, hide_internal=hide_internal, max_depth=max_depth, depth=depth,
+    )
+    parts.extend(nested)
+    if member.properties:
+        parts.extend(property_table(property_rows(
+            member, hide_internal=hide_internal, max_depth=max_depth,
+        )))
+
+    return "\n".join(parts)
+
+
+def _members(schema: Schema) -> list[tuple[tuple[Schema, ...], str]]:
+    return [(schema.all_of, "All of"),
+            (schema.one_of, "One of"),
+            (schema.any_of, "Any of")]
+
+
+def _composition_alternatives(
+    schema: Schema, *, hide_internal: bool, max_depth: int, depth: int = 0,
+) -> list[str]:
+    if depth >= _MAX_ALTERNATIVE_DEPTH or _all_bare_refs(schema):
+        lines = _composition_alternatives_line(schema)
+        return [_md_to_html(line) for line in lines] if depth else lines
+
+    blocks: list[str] = []
+    for members, label in _members(schema):
+        shown = [m for m in members if _is_renderable(m)]
+        if not shown:
+            continue
+        items = [
+            _composition_alternative(member, hide_internal=hide_internal,
+                                     max_depth=max_depth, depth=depth + 1)
+            for member in shown
+        ]
+        blocks.append(f"<p><strong>{label}:</strong></p>")
+        blocks.append(_html_list(items, kind="alternatives"))
+    return blocks
+
+
+def _all_bare_refs(schema: Schema) -> bool:
+    """
+    Whether every member is a reference carrying nothing of its own.
+    TODO
+    """
+    members = [m for members, _ in _members(schema) for m in members
+               if _is_renderable(m)]
+    return bool(members) and all(
+        m.is_ref() and not (m.description or "").strip() for m in members
+    )
+
+
+def _composition_alternatives_line(schema: Schema) -> list[str]:
+    """
+    The members named on one line, with nothing said about each.
     """
     lines: list[str] = []
-    properties = dict(schema.properties)
-    required = set(schema.required)
-
-    includes: list[str] = []
-    for member in schema.all_of:
-        if member.is_ref():
-            includes.append(ref_link(member))
-        else:
-            properties.update(member.properties)
-            required.update(member.required)
-    if includes:
-        lines.append("**All of:** " + " | ".join(includes))
-
-    for members, label in ((schema.one_of, "One of"), (schema.any_of, "Any of")):
-        if members:
+    for members, label in _members(schema):
+        shown = [m for m in members if _is_renderable(m)]
+        if shown:
             lines.append(f"**{label}:** " + " | ".join(
-                ref_link(m) if m.is_ref() else f"`{format_type(m)}`" for m in members
+                ref_link(m) if m.is_ref() else f"`{format_type(m)}`" for m in shown
             ))
+    return lines
 
-    return lines, properties, required
+
+def _required_composition_alternatives(schema: Schema) -> list[str]:
+    """
+    Composition constraint.
+    """
+    lines: list[str] = []
+    for members, word in ((schema.one_of, "exactly one"),
+                          (schema.any_of, "at least one")):
+        if not members or not _is_required_only(members):
+            continue
+        groups = [", ".join(f"`{name}`" for name in m.required) for m in members]
+        lines.append(f"**Requires {word} of:** " + " | ".join(groups))
+    return lines
+
+
+def _is_required_only(members: tuple[Schema, ...]) -> bool:
+    return bool(members) and all(
+        m.required and not (m.types or m.properties or m.items or m.is_ref()
+                            or m.enum or m.all_of or m.any_of or m.one_of)
+        for m in members
+    )
+
+
+def _composition_constraint(
+    schema: Schema, *, hide_internal: bool, max_depth: int,
+) -> list[str]:
+    if _required_composition_alternatives(schema):
+        return []
+    if any(_is_renderable(m) and not m.is_ref()
+           for members, _ in _members(schema) for m in members):
+        return _composition_alternatives(
+            schema, hide_internal=hide_internal, max_depth=max_depth,
+        )
+    return _composition_alternatives_line(schema)
+
+
+def _type_line(schema: Schema) -> list[str]:
+    name = format_type(schema)
+    return [f"_Type:_ {name}" if schema.is_ref() else f"_Type:_ `{name}`"]
+
+
+def _constraints_block(schema: Schema) -> list[str]:
+    rules = _constraint_rules(schema)
+    return ["\n".join(rules)] if rules else []
+
+
+def _closed_note(schema: Schema) -> list[str]:
+    note = closed_object_note(schema)
+    return [note] if note else []
+
+
+def _render_ref(schema: Schema, **_) -> list[str]:
+    return _type_line(schema) + _constraints_block(schema)
+
+
+def _render_object(schema: Schema, *, hide_internal: bool, max_depth: int) -> list[str]:
+    rows = property_rows(schema, hide_internal=hide_internal, max_depth=max_depth)
+    return (
+            _type_line(schema)
+            + _closed_note(schema)
+            + _constraints_block(schema)
+            + _required_composition_alternatives(schema)
+            + _composition_constraint(schema, hide_internal=hide_internal, max_depth=max_depth)
+            + (["_Properties:_", *property_table(rows)] if rows else [])
+    )
+
+
+def _render_array(schema: Schema, *, hide_internal: bool, max_depth: int) -> list[str]:
+    blocks = (_type_line(schema) + _constraints_block(schema)
+              + _composition_constraint(schema, hide_internal=hide_internal,
+                                        max_depth=max_depth))
+    items = schema.items
+    if items is not None and not items.is_ref() and items.properties:
+        blocks.append("_Items:_")
+        blocks.extend(property_table(property_rows(
+            items, hide_internal=hide_internal, max_depth=max_depth,
+        )))
+    return blocks
+
+
+def _render_composition(schema: Schema, *, hide_internal: bool, max_depth: int) -> list[str]:
+    blocks = _constraints_block(schema)
+    if schema.types:
+        blocks = _type_line(schema) + blocks
+    return blocks + _required_composition_alternatives(schema) + _composition_alternatives(
+        schema, hide_internal=hide_internal, max_depth=max_depth,
+    )
+
+
+def _render_primitive(schema: Schema, **_) -> list[str]:
+    name = format_type(schema)
+    blocks = [f"_Type:_ `{name}`"] if name and name != "object" else []
+    return blocks + _constraints_block(schema)
+
+
+_BY_SHAPE = {
+    SchemaShape.REF: _render_ref,
+    SchemaShape.OBJECT: _render_object,
+    SchemaShape.ARRAY: _render_array,
+    SchemaShape.COMPOSITION: _render_composition,
+    SchemaShape.PRIMITIVE: _render_primitive,
+}
 
 
 def render_schema(
     schema: Schema, *, hide_internal: bool = False, max_depth: int = 1,
 ) -> list[str]:
-    """One named schema: description, type, composition, property table."""
     blocks: list[str] = []
-
     description = (schema.description or "").strip()
     if description:
         blocks.append(_demote_headings(description))
 
-    if schema.is_ref():
-        blocks.append(f"_Type:_ {ref_link(schema)}")
-        return blocks
-
-    note = closed_object_note(schema)
-    if note:
-        blocks.append(note)
-
-    type_name = " | ".join(schema.types) or _infer_enum_type(list(schema.enum))
-    composition, properties, required = _composition(schema)
-
-    if schema.enum and not properties:
-        if type_name:
-            blocks.append(f"_Type:_ `{type_name}`")
-        blocks.append("**Allowed values:**")
-        blocks.append("\n".join(f"- `{value}`" for value in schema.enum))
-        return blocks
-
-    if type_name:
-        blocks.append(f"_Type:_ `{type_name}`")
-    blocks.extend(composition)
-
-    if properties:
-        blocks.append("_Properties:_")
-        merged = Schema(properties=properties, required=tuple(sorted(required)))
-        blocks.extend(property_table(property_rows(
-            merged, hide_internal=hide_internal, max_depth=max_depth,
-        )))
-
-    return blocks
+    return blocks + _BY_SHAPE[schema.schema_shape()](
+        schema, hide_internal=hide_internal, max_depth=max_depth,
+    )

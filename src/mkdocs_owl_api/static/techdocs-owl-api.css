@@ -14,6 +14,32 @@
   font-size: 0.9em;
 }
 
+/* oneOf/anyOf alternatives. A rule per alternative, each carrying whatever it
+   is - prose, constraints, a property table, or another list of alternatives.
+   The left border is what tells a reader where one alternative ends and the
+   next begins once the items get tall; it is decoration, so the list still
+   reads correctly without it. */
+.techdocs-owl-api-alternatives {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.4em 0;
+}
+
+.techdocs-owl-api-alternatives > li {
+  border-left: 2px solid var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.12));
+  padding-left: 0.9em;
+  margin-bottom: 0.6em;
+}
+
+.techdocs-owl-api-alternatives > li:last-child {
+  margin-bottom: 0;
+}
+
+/* A table inside an alternative must not push the page wider than it is. */
+.techdocs-owl-api-alternatives table {
+  width: 100%;
+}
+
 .techdocs-owl-api-pill {
   display: inline-block;
   padding: 0.05em 0.55em;

@@ -157,10 +157,19 @@ class TestPropertyRows(unittest.TestCase):
 
 
 class TestRenderSchema(unittest.TestCase):
-    def test_enum_without_properties_lists_values(self):
+    def test_enum_renders_as_a_constraint(self):
         blocks = render_schema(Schema(types=("string",), enum=("a", "b")))
-        self.assertIn("**Allowed values:**", blocks)
-        self.assertIn("- `a`\n- `b`", blocks)
+        self.assertIn("_Type:_ `string`", blocks)
+        self.assertIn("- Allowed values: `a`, `b`", blocks)
+
+    def test_enum_survives_alongside_properties(self):
+        blocks = "\n".join(render_schema(Schema(
+            types=("object",),
+            properties={"a": Schema(types=("integer",))},
+            enum=({"a": 1},),
+        )))
+        self.assertIn("Allowed values", blocks)
+        self.assertIn(">a</span>", blocks)
 
     def test_inline_all_of_members_merge_into_one_table(self):
         blocks = render_schema(Schema(
