@@ -14,13 +14,24 @@ from __future__ import annotations
 from dataclasses import replace
 
 from ..common.render import MarkdownRenderer, PageBuilder, RenderContext
-from ..common.primitives import (
+from ..common.primitives.markup import (
     _anchor,
     _demote_headings,
     _heading,
     _html_table,
     _md_to_html,
-    _pill,
+)
+from ..common.primitives.pills import (
+    content_type_pill,
+    deprecated_pill,
+    pill_blue,
+    pill_green,
+    pill_grey,
+    pill_orange,
+    pill_purple,
+    pill_red,
+    required_pill,
+    scheme_pill,
 )
 from ..jsonschema.schema_model import UNSET, Schema
 from ..jsonschema.schema_render import (
@@ -30,7 +41,9 @@ from ..jsonschema.schema_render import (
     property_table,
     render_schema,
 )
-from .model import OpenApiDoc, MediaType, Operation, Parameter, Response, Server
+from .model import (
+    HttpMethod, OpenApiDoc, MediaType, Operation, Parameter, Response, Server,
+)
 from .parser import parse_document
 
 #: Section for operations that declare no tag of their own.
@@ -40,9 +53,17 @@ PARAMETER_HEADERS = ("Name", "In", "Type", "Description")
 RESPONSE_HEADERS = ("Status", "Description", "Schema")
 HEADER_HEADERS = ("Header", "Type", "Description")
 
+_METHOD_PILLS = {
+    HttpMethod.GET: pill_green,
+    HttpMethod.POST: pill_blue,
+    HttpMethod.PUT: pill_orange,
+    HttpMethod.DELETE: pill_red,
+    HttpMethod.PATCH: pill_purple,
+}
 
-def _method_pill(method) -> str:
-    return _pill(method.value.upper(), kind=f"http-{method.value}")
+
+def method_pill(method: HttpMethod) -> str:
+    return _METHOD_PILLS.get(method, pill_grey)(method.value.upper())
 
 
 class OpenApiRenderer(MarkdownRenderer):
@@ -104,9 +125,9 @@ class OpenApiRenderer(MarkdownRenderer):
 
     def operation(self, operation: Operation, tag: str) -> list[str]:
         summary = (operation.summary or "").strip()
-        method_line = f"{_method_pill(operation.method)} `{operation.path}`"
+        method_line = f"{method_pill(operation.method)} `{operation.path}`"
         if operation.deprecated:
-            method_line += " " + _pill("deprecated", kind="deprecated")
+            method_line += " " + deprecated_pill()
 
         blocks = [
             _heading(3, summary or f"`{operation.path}`", anchor=_anchor(
@@ -135,9 +156,9 @@ class OpenApiRenderer(MarkdownRenderer):
         for parameter in parameters:
             pills: list[str] = []
             if parameter.required:
-                pills.append(_pill("required", kind="required"))
+                pills.append(required_pill())
             if parameter.deprecated:
-                pills.append(_pill("deprecated", kind="deprecated"))
+                pills.append(deprecated_pill())
 
             name_md = f"`{parameter.name}`"
             if pills:
@@ -173,7 +194,7 @@ class OpenApiRenderer(MarkdownRenderer):
         if description:
             blocks.append(description)
         if body.required:
-            blocks.append(_pill("required", kind="required"))
+            blocks.append(required_pill())
         blocks.extend(self.content(body.content))
         return blocks
 
@@ -185,7 +206,7 @@ class OpenApiRenderer(MarkdownRenderer):
         """
         blocks: list[str] = []
         for media_type, media in content.items():
-            blocks.append(f"*Content type:* {_pill(media_type, kind='contenttype')}")
+            blocks.append(f"*Content type:* {content_type_pill(media_type)}")
             schema = media.schema
             if schema is None:
                 continue
@@ -256,7 +277,7 @@ class OpenApiRenderer(MarkdownRenderer):
         if scheme is None:
             return [f"- **Security:** `{requirement.scheme_name}`"]
 
-        body: list[str] = [f"**Type:** {_pill(scheme.type.value, kind='scheme')}", ""]
+        body: list[str] = [f"**Type:** {scheme_pill(scheme.type.value)}", ""]
         for label, value in (
             ("Name", scheme.parameter_name),
             ("In", scheme.location.value if scheme.location else None),

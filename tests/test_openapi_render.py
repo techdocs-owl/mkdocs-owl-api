@@ -159,7 +159,7 @@ class TestPropertyRows(unittest.TestCase):
 class TestRenderSchema(unittest.TestCase):
     def test_enum_renders_as_a_constraint(self):
         blocks = render_schema(Schema(types=("string",), enum=("a", "b")))
-        self.assertIn("_Type:_ `string`", blocks)
+        self.assertIn("`string`", blocks[0])
         self.assertIn("- Allowed values: `a`, `b`", blocks)
 
     def test_enum_survives_alongside_properties(self):

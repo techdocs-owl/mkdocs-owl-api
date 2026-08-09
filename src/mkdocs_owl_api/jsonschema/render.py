@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from ..common.primitives import _anchor, _heading
+from ..common.primitives.markup import _anchor, _heading
 from ..common.render import MarkdownRenderer, PageBuilder, RenderContext
 from .model import JsonSchemaDoc
 from .parser import parse_document

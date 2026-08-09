@@ -61,13 +61,14 @@ class TestPage(unittest.TestCase):
         for spec in (ASYNCAPI_V2, ASYNCAPI_V3):
             with self.subTest(version=spec["asyncapi"]):
                 row = render(spec).split("<code>streetlightId</code>")[1]
-                self.assertIn("techdocs-owl-api-pill--required", row.split("</tr>")[0])
+                self.assertIn(">required</span>", row.split("</tr>")[0])
                 self.assertIn("<td>string</td>", row.split("</tr>")[0])
 
     def test_tags_render_as_pills_alone(self):
         page = render({**ASYNCAPI_V3, "servers": {"production": {
             "host": "b", "tags": [{"name": "env:prod"}]}}})
-        self.assertIn("techdocs-owl-api-pill--tag", page)
+        self.assertIn("techdocs-owl-api-pill", page)
+        self.assertIn(">env:prod</span>", page)
         self.assertNotIn("**Tags:**", page)
 
     def test_merged_trait_reaches_the_message(self):

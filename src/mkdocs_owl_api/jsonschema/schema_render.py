@@ -12,15 +12,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..common.primitives import (
+from ..common.primitives.markup import (
     _anchor,
     _demote_headings,
     _html_list,
     _html_table,
     _infer_enum_type,
     _md_to_html,
-    _pill,
     _property_name_html,
+)
+from ..common.primitives.pills import (
+    deprecated_pill,
+    internal_pill,
+    pill_blue,
+    pill_green,
+    pill_grey,
+    pill_indigo,
+    pill_orange,
+    pill_purple,
+    required_pill,
 )
 from .schema_model import UNSET, Schema, SchemaShape
 
@@ -35,6 +45,33 @@ _MAX_ALTERNATIVE_DEPTH = 3
 _INTERNAL = "x-internal-only"
 
 PROPERTY_HEADERS = ("Name", "Type", "Description")
+
+
+_SCHEMA_SHAPE_PILLS = {
+    SchemaShape.REF: pill_green,
+    SchemaShape.OBJECT: pill_blue,
+    SchemaShape.ARRAY: pill_orange,
+    SchemaShape.COMPOSITION: pill_purple,
+    SchemaShape.PRIMITIVE: pill_indigo,
+}
+
+def _type_name(schema: Schema) -> str:
+    # `format_type` falls back to a bare "object" for a schema that states no
+    # type of its own, which says nothing the shape pill has not said already.
+    name = format_type(schema)
+    return "" if name == "object" else name
+
+
+def _schema_shape_text(schema: Schema) -> str:
+    schema_shape = schema.schema_shape()
+    shape_pill = _SCHEMA_SHAPE_PILLS.get(schema_shape, pill_grey)(schema_shape.value.upper())
+    name = _type_name(schema)
+    if not name:
+        return shape_pill
+    # A reference is already a link, so it is not fenced as code.
+    if schema_shape is SchemaShape.REF:
+        return f"{shape_pill} {name}"
+    return f"{shape_pill} `{name}`"
 
 
 def ref_link(schema: Schema) -> str:
@@ -217,11 +254,11 @@ def property_rows(
 def _flags(schema: Schema, *, required: bool) -> list[str]:
     flags: list[str] = []
     if required:
-        flags.append(_pill("required", kind="required"))
+        flags.append(required_pill())
     if schema.extensions.get(_INTERNAL) is True:
-        flags.append(_pill("internal", kind="internal"))
+        flags.append(internal_pill())
     if schema.deprecated:
-        flags.append(_pill("deprecated", kind="deprecated"))
+        flags.append(deprecated_pill())
     return flags
 
 
@@ -320,7 +357,6 @@ def _composition_alternatives(
 def _all_bare_refs(schema: Schema) -> bool:
     """
     Whether every member is a reference carrying nothing of its own.
-    TODO
     """
     members = [m for members, _ in _members(schema) for m in members
                if _is_renderable(m)]
@@ -378,11 +414,6 @@ def _composition_constraint(
     return _composition_alternatives_line(schema)
 
 
-def _type_line(schema: Schema) -> list[str]:
-    name = format_type(schema)
-    return [f"_Type:_ {name}" if schema.is_ref() else f"_Type:_ `{name}`"]
-
-
 def _constraints_block(schema: Schema) -> list[str]:
     rules = _constraint_rules(schema)
     return ["\n".join(rules)] if rules else []
@@ -394,14 +425,13 @@ def _closed_note(schema: Schema) -> list[str]:
 
 
 def _render_ref(schema: Schema, **_) -> list[str]:
-    return _type_line(schema) + _constraints_block(schema)
+    return _constraints_block(schema)
 
 
 def _render_object(schema: Schema, *, hide_internal: bool, max_depth: int) -> list[str]:
     rows = property_rows(schema, hide_internal=hide_internal, max_depth=max_depth)
     return (
-            _type_line(schema)
-            + _closed_note(schema)
+            _closed_note(schema)
             + _constraints_block(schema)
             + _required_composition_alternatives(schema)
             + _composition_constraint(schema, hide_internal=hide_internal, max_depth=max_depth)
@@ -410,9 +440,8 @@ def _render_object(schema: Schema, *, hide_internal: bool, max_depth: int) -> li
 
 
 def _render_array(schema: Schema, *, hide_internal: bool, max_depth: int) -> list[str]:
-    blocks = (_type_line(schema) + _constraints_block(schema)
-              + _composition_constraint(schema, hide_internal=hide_internal,
-                                        max_depth=max_depth))
+    blocks = (_constraints_block(schema)
+              + _composition_constraint(schema, hide_internal=hide_internal, max_depth=max_depth))
     items = schema.items
     if items is not None and not items.is_ref() and items.properties:
         blocks.append("_Items:_")
@@ -424,17 +453,13 @@ def _render_array(schema: Schema, *, hide_internal: bool, max_depth: int) -> lis
 
 def _render_composition(schema: Schema, *, hide_internal: bool, max_depth: int) -> list[str]:
     blocks = _constraints_block(schema)
-    if schema.types:
-        blocks = _type_line(schema) + blocks
     return blocks + _required_composition_alternatives(schema) + _composition_alternatives(
         schema, hide_internal=hide_internal, max_depth=max_depth,
     )
 
 
 def _render_primitive(schema: Schema, **_) -> list[str]:
-    name = format_type(schema)
-    blocks = [f"_Type:_ `{name}`"] if name and name != "object" else []
-    return blocks + _constraints_block(schema)
+    return _constraints_block(schema)
 
 
 _BY_SHAPE = {
@@ -449,11 +474,18 @@ _BY_SHAPE = {
 def render_schema(
     schema: Schema, *, hide_internal: bool = False, max_depth: int = 1,
 ) -> list[str]:
-    blocks: list[str] = []
-    description = (schema.description or "").strip()
-    if description:
-        blocks.append(_demote_headings(description))
-
-    return blocks + _BY_SHAPE[schema.schema_shape()](
+    body = _BY_SHAPE[schema.schema_shape()](
         schema, hide_internal=hide_internal, max_depth=max_depth,
     )
+    description = (schema.description or "").strip()
+
+    # A caller decides whether to emit its heading by whether this returned
+    # anything. The head counts: a `$ref` or an array of primitives carries all
+    # of its meaning there and has no body at all.
+    if not body and not description and not _type_name(schema):
+        return []
+
+    head = _schema_shape_text(schema)
+    if description:
+        head = f"{head} {_demote_headings(description)}"
+    return [head, *body]

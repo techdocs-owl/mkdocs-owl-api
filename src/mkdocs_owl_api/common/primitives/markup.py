@@ -37,19 +37,6 @@ def _md_to_html(text: str, *, inline: bool = False) -> str:
     return html
 
 
-def _pill(label: str, *, kind: str, title: str | None = None) -> str:
-    """
-    Render a short categorical badge as a `<span class="techdocs-owl-api-pill ...">`.
-    """
-    classes = f"techdocs-owl-api-pill techdocs-owl-api-pill--{kind}"
-    title_attr = f' title="{_html.escape(title)}"' if title else ""
-    return (
-        f'<span class="{classes}"{title_attr}>'
-        f'{_html.escape(label)}'
-        f'</span>'
-    )
-
-
 def _normalize_lists(md: str) -> str:
     """
     Insert a blank line before a bullet/numbered list that directly follows a non-blank line.

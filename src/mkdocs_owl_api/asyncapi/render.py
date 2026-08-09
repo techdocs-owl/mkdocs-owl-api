@@ -15,30 +15,41 @@ from typing import Any
 import yaml
 
 from ..common.render import MarkdownRenderer, PageBuilder, RenderContext
-from ..common.primitives import (
+from ..common.primitives.markup import (
     _anchor,
     _demote_headings,
     _heading,
     _html_table,
     _md_to_html,
-    _pill,
+)
+from ..common.primitives.pills import (
+    content_type_pill,
+    deprecated_pill,
+    pill_blue,
+    pill_grey,
+    pill_teal,
+    required_pill,
+    scheme_pill,
+    tag_pills,
 )
 from ..jsonschema.schema_model import Schema
 from ..jsonschema.schema_render import describe, format_type, render_schema
-from .model import AsyncApiDoc, Channel, Message, Operation, Server
+from .model import (
+    AsyncApiDoc, Channel, Message, Operation, OperationAction, Server,
+)
 from .parser import parse_document
 
 
 PARAMETER_HEADERS = ("Name", "Type", "Description")
 
+_ACTION_PILLS = {
+    OperationAction.SEND: pill_blue,
+    OperationAction.RECEIVE: pill_teal,
+}
 
-def _tag_pills(tags) -> list[str]:
-    """Tags as pills. A pill says what it is, so it carries no label."""
-    if not tags:
-        return []
-    return [" ".join(
-        _pill(tag.name, kind="tag", title=tag.description or None) for tag in tags
-    )]
+
+def action_pill(action: OperationAction) -> str:
+    return _ACTION_PILLS.get(action, pill_grey)(action.value)
 
 
 def _bindings(bindings: dict[str, Any], *, hide: bool) -> list[str]:
@@ -86,7 +97,7 @@ class AsyncApiRenderer(MarkdownRenderer):
         value = self.doc.default_content_type
         if not value:
             return []
-        return [f"**Default content type:** {_pill(value, kind='contenttype')}"]
+        return [f"**Default content type:** {content_type_pill(value)}"]
 
     # -- servers ------------------------------------------------------------
 
@@ -109,7 +120,7 @@ class AsyncApiRenderer(MarkdownRenderer):
         if server.description:
             blocks.append(_demote_headings(server.description.strip()))
 
-        blocks.extend(_tag_pills(server.tags))
+        blocks.extend(tag_pills(server.tags))
         for name, variable in server.variables.items():
             bits = []
             if variable.default:
@@ -134,7 +145,7 @@ class AsyncApiRenderer(MarkdownRenderer):
         if scheme is None:
             return [f"- **Security:** `{requirement.scheme_name}`"]
 
-        body = [f"**Type:** {_pill(scheme.type.value, kind='scheme')}", ""]
+        body = [f"**Type:** {scheme_pill(scheme.type.value)}", ""]
         for label, value in (("Name", scheme.parameter_name), ("In", scheme.location),
                              ("Scheme", scheme.scheme),
                              ("Bearer format", scheme.bearer_format),
@@ -167,12 +178,11 @@ class AsyncApiRenderer(MarkdownRenderer):
         return blocks
 
     def operation(self, operation: Operation, channel: Channel | None) -> list[str]:
-        action = operation.action.value
-        line = _pill(action, kind=f"action-{action}")
+        line = action_pill(operation.action)
         if operation.channel:
             line += f" `{operation.channel}`"
         if operation.deprecated:
-            line += " " + _pill("deprecated", kind="deprecated")
+            line += " " + deprecated_pill()
 
         blocks = [
             _heading(3, operation.name, anchor=_anchor("operations", operation.name)),
@@ -187,7 +197,7 @@ class AsyncApiRenderer(MarkdownRenderer):
             blocks.extend(self.parameters_table(channel))
 
         blocks.extend(_ref_bullets("**Messages:**", operation.message_names, "messages"))
-        blocks.extend(_tag_pills(operation.tags))
+        blocks.extend(tag_pills(operation.tags))
         if not self.options.hide_traits:
             blocks.extend(_ref_bullets("**Traits:**", operation.trait_names,
                                        "operationtraits"))
@@ -215,7 +225,7 @@ class AsyncApiRenderer(MarkdownRenderer):
 
             name_html = _md_to_html(f"`{name}`", inline=True)
             if f"{{{name}}}" in channel.address:
-                name_html += "<br>" + _pill("required", kind="required")
+                name_html += "<br>" + required_pill()
 
             described = describe(
                 replace(schema, description=parameter.description)
@@ -270,9 +280,9 @@ class AsyncApiRenderer(MarkdownRenderer):
             blocks.append(_demote_headings(message.description.strip()))
         if message.content_type:
             blocks.append(
-                f"**Content type:** {_pill(message.content_type, kind='contenttype')}"
+                f"**Content type:** {content_type_pill(message.content_type)}"
             )
-        blocks.extend(_tag_pills(message.tags))
+        blocks.extend(tag_pills(message.tags))
 
         if message.correlation_id is not None:
             blocks.append(f"**Correlation id:** `{message.correlation_id.location}`")
@@ -362,7 +372,7 @@ class AsyncApiRenderer(MarkdownRenderer):
                 blocks.append(_heading(3, name, anchor=_anchor("operationtraits", name)))
                 if trait.description:
                     blocks.append(_demote_headings(trait.description.strip()))
-                blocks.extend(_tag_pills(trait.tags))
+                blocks.extend(tag_pills(trait.tags))
                 blocks.extend(_bindings(trait.bindings,
                                         hide=self.options.hide_bindings))
         return blocks
