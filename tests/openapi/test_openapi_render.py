@@ -17,7 +17,7 @@ from mkdocs_owl_api.jsonschema.schema_render import (
 from mkdocs_owl_api.openapi.render import OpenApiPageBuilder
 from mkdocs_owl_api.options import PageOptions
 
-from .fixtures import API_V2, API_V30, API_V31
+from ..fixtures import API_V2, API_V30, API_V31
 
 
 def render(spec, **options):

@@ -11,7 +11,7 @@ from mkdocs_owl_api.asyncapi.model import (
 )
 from mkdocs_owl_api.asyncapi.parser import parse_document
 
-from .fixtures import ASYNCAPI_V2, ASYNCAPI_V3
+from ..fixtures import ASYNCAPI_V2, ASYNCAPI_V3
 
 
 class ParserTestCase(unittest.TestCase):

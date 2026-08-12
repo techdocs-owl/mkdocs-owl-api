@@ -11,7 +11,7 @@ from mkdocs_owl_api.openapi.model import (
 )
 from mkdocs_owl_api.openapi.parser import parse_document
 
-from .fixtures import API_V2, API_V30, API_V31, expected_api
+from ..fixtures import API_V2, API_V30, API_V31, expected_api
 
 
 class ParserTestCase(unittest.TestCase):

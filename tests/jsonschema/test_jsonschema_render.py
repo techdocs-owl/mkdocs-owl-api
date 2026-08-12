@@ -7,7 +7,7 @@ from mkdocs_owl_api.common.render import RenderContext
 from mkdocs_owl_api.jsonschema.render import JsonSchemaPageBuilder
 from mkdocs_owl_api.options import PageOptions
 
-from .fixtures import SCHEMA_DOC_2020_12, SCHEMA_DOC_DRAFT04
+from ..fixtures import SCHEMA_DOC_2020_12, SCHEMA_DOC_DRAFT04
 
 V2020_12_URI = "https://json-schema.org/draft/2020-12/schema"
 

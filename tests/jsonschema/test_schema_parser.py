@@ -15,7 +15,7 @@ from mkdocs_owl_api.jsonschema.schema_model import (
 )
 from mkdocs_owl_api.jsonschema.schema_parser import read_schema
 
-from .fixtures import PET_V2, PET_V30, PET_V31, expected_pet
+from ..fixtures import PET_V2, PET_V30, PET_V31, expected_pet
 
 
 class SchemaTestCase(unittest.TestCase):
