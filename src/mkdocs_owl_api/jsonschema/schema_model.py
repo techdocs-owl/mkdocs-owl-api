@@ -164,14 +164,10 @@ class Schema:
     def schema_shape(self) -> SchemaShape:
         if self.is_ref():
             return SchemaShape.REF
-        if self.properties or self.additional_properties is not None:
+        if "object" in self.types or self.properties:
             return SchemaShape.OBJECT
-        if self.items or self.prefix_items:
+        if "array" in self.types or self.items:
             return SchemaShape.ARRAY
         if self.all_of or self.any_of or self.one_of:
             return SchemaShape.COMPOSITION
-        if "object" in self.types:
-            return SchemaShape.OBJECT
-        if "array" in self.types:
-            return SchemaShape.ARRAY
         return SchemaShape.PRIMITIVE

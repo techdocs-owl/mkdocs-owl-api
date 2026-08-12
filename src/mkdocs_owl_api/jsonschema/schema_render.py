@@ -296,34 +296,11 @@ def _is_renderable(member: Schema) -> bool:
 def _composition_alternative(
     member: Schema, *, hide_internal: bool, max_depth: int, depth: int,
 ) -> str:
-    """
-    One member of a composition, as the body of an `<li>`.
-    """
-    parts = [_md_to_html(
-        ref_link(member) if member.is_ref() else f"`{format_type(member)}`",
-        inline=True,
-    )]
-
-    if member.is_ref():
-        described = (member.description or "").strip()
-        if described:
-            parts.append(_md_to_html(described))
-        return "\n".join(parts)
-
-    described = describe(member)
-    if described:
-        parts.append(_md_to_html(described))
-
-    nested = _composition_alternatives(
-        member, hide_internal=hide_internal, max_depth=max_depth, depth=depth,
-    )
-    parts.extend(nested)
-    if member.properties:
-        parts.extend(property_table(property_rows(
-            member, hide_internal=hide_internal, max_depth=max_depth,
-        )))
-
-    return "\n".join(parts)
+    blocks = _render_schema(member, hide_internal=hide_internal,
+                            max_depth=max_depth, depth=depth)
+    if not blocks:
+        blocks = [_schema_shape_text(member)]
+    return "\n".join(_md_to_html(block) for block in blocks)
 
 
 def _members(schema: Schema) -> list[tuple[tuple[Schema, ...], str]]:
@@ -336,8 +313,7 @@ def _composition_alternatives(
     schema: Schema, *, hide_internal: bool, max_depth: int, depth: int = 0,
 ) -> list[str]:
     if depth >= _MAX_ALTERNATIVE_DEPTH or _all_bare_refs(schema):
-        lines = _composition_alternatives_line(schema)
-        return [_md_to_html(line) for line in lines] if depth else lines
+        return _composition_alternatives_line(schema)
 
     blocks: list[str] = []
     for members, label in _members(schema):
@@ -402,14 +378,14 @@ def _is_required_only(members: tuple[Schema, ...]) -> bool:
 
 
 def _composition_constraint(
-    schema: Schema, *, hide_internal: bool, max_depth: int,
+    schema: Schema, *, hide_internal: bool, max_depth: int, depth: int,
 ) -> list[str]:
     if _required_composition_alternatives(schema):
         return []
     if any(_is_renderable(m) and not m.is_ref()
            for members, _ in _members(schema) for m in members):
         return _composition_alternatives(
-            schema, hide_internal=hide_internal, max_depth=max_depth,
+            schema, hide_internal=hide_internal, max_depth=max_depth, depth=depth,
         )
     return _composition_alternatives_line(schema)
 
@@ -428,20 +404,26 @@ def _render_ref(schema: Schema, **_) -> list[str]:
     return _constraints_block(schema)
 
 
-def _render_object(schema: Schema, *, hide_internal: bool, max_depth: int) -> list[str]:
+def _render_object(
+    schema: Schema, *, hide_internal: bool, max_depth: int, depth: int,
+) -> list[str]:
     rows = property_rows(schema, hide_internal=hide_internal, max_depth=max_depth)
     return (
             _closed_note(schema)
             + _constraints_block(schema)
             + _required_composition_alternatives(schema)
-            + _composition_constraint(schema, hide_internal=hide_internal, max_depth=max_depth)
+            + _composition_constraint(schema, hide_internal=hide_internal,
+                                      max_depth=max_depth, depth=depth)
             + (["_Properties:_", *property_table(rows)] if rows else [])
     )
 
 
-def _render_array(schema: Schema, *, hide_internal: bool, max_depth: int) -> list[str]:
+def _render_array(
+    schema: Schema, *, hide_internal: bool, max_depth: int, depth: int,
+) -> list[str]:
     blocks = (_constraints_block(schema)
-              + _composition_constraint(schema, hide_internal=hide_internal, max_depth=max_depth))
+              + _composition_constraint(schema, hide_internal=hide_internal,
+                                        max_depth=max_depth, depth=depth))
     items = schema.items
     if items is not None and not items.is_ref() and items.properties:
         blocks.append("_Items:_")
@@ -451,10 +433,12 @@ def _render_array(schema: Schema, *, hide_internal: bool, max_depth: int) -> lis
     return blocks
 
 
-def _render_composition(schema: Schema, *, hide_internal: bool, max_depth: int) -> list[str]:
+def _render_composition(
+    schema: Schema, *, hide_internal: bool, max_depth: int, depth: int,
+) -> list[str]:
     blocks = _constraints_block(schema)
     return blocks + _required_composition_alternatives(schema) + _composition_alternatives(
-        schema, hide_internal=hide_internal, max_depth=max_depth,
+        schema, hide_internal=hide_internal, max_depth=max_depth, depth=depth,
     )
 
 
@@ -471,17 +455,14 @@ _BY_SHAPE = {
 }
 
 
-def render_schema(
-    schema: Schema, *, hide_internal: bool = False, max_depth: int = 1,
+def _render_schema(
+    schema: Schema, *, hide_internal: bool, max_depth: int, depth: int,
 ) -> list[str]:
     body = _BY_SHAPE[schema.schema_shape()](
-        schema, hide_internal=hide_internal, max_depth=max_depth,
+        schema, hide_internal=hide_internal, max_depth=max_depth, depth=depth,
     )
     description = (schema.description or "").strip()
 
-    # A caller decides whether to emit its heading by whether this returned
-    # anything. The head counts: a `$ref` or an array of primitives carries all
-    # of its meaning there and has no body at all.
     if not body and not description and not _type_name(schema):
         return []
 
@@ -489,3 +470,12 @@ def render_schema(
     if description:
         head = f"{head} {_demote_headings(description)}"
     return [head, *body]
+
+
+def render_schema(
+    schema: Schema, *, hide_internal: bool = False, max_depth: int = 1,
+) -> list[str]:
+    """
+    One schema as page blocks. Nothing encloses it, so it starts at depth zero.
+    """
+    return _render_schema(schema, hide_internal=hide_internal, max_depth=max_depth, depth=0)

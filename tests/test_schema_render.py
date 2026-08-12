@@ -136,22 +136,29 @@ class TestShapeDispatch(unittest.TestCase):
     def test_the_order_is_ref_object_array_composition_primitive(self):
         cases = [
             ({"$ref": "#/$defs/A", "type": "object"}, SchemaShape.REF),
-            # Content decides, so a declared type without content does not win.
             ({"properties": {"a": {}}}, SchemaShape.OBJECT),
-            ({"type": "object", "oneOf": [{"type": "string"}]}, SchemaShape.COMPOSITION),
-            ({"type": "array", "oneOf": [{"type": "string"}]}, SchemaShape.COMPOSITION),
+            ({"type": "object"}, SchemaShape.OBJECT),
             ({"items": {"type": "string"}}, SchemaShape.ARRAY),
+            ({"type": "array"}, SchemaShape.ARRAY),
+            ({"type": "object", "oneOf": [{"type": "string"}]}, SchemaShape.OBJECT),
+            ({"type": "array", "oneOf": [{"type": "string"}]}, SchemaShape.ARRAY),
             ({"oneOf": [{"type": "string"}]}, SchemaShape.COMPOSITION),
             ({"allOf": [{"$ref": "#/$defs/A"}]}, SchemaShape.COMPOSITION),
-            # Declared type is the last resort, when nothing carries content.
-            ({"type": "object"}, SchemaShape.OBJECT),
-            ({"type": "array"}, SchemaShape.ARRAY),
             ({"type": "string"}, SchemaShape.PRIMITIVE),
             ({}, SchemaShape.PRIMITIVE),
         ]
         for raw, expected in cases:
             with self.subTest(raw=raw):
                 self.assertEqual(self.shape(raw), expected)
+
+    def test_an_object_keyword_does_not_outrank_a_declared_type(self):
+        raw = {"type": "array", "additionalProperties": False,
+               "items": {"type": "object", "properties": {"driver": {"type": "string"}}}}
+        self.assertEqual(self.shape(raw), SchemaShape.ARRAY)
+        out = render(raw)
+        self.assertIn("_Items:_", out)
+        self.assertIn(">driver</span>", out)
+        self.assertNotIn("Additional properties are NOT allowed", out)
 
     def test_enum_is_a_constraint_not_a_shape(self):
         self.assertEqual(self.shape({"type": "string", "enum": ["a"]}),
@@ -232,11 +239,19 @@ class TestRequiredRestriction(unittest.TestCase):
 
 
 class TestObjectVersusComposition(unittest.TestCase):
-    def test_no_properties_makes_the_composition_the_content(self):
+    def test_no_declared_type_makes_the_composition_the_content(self):
+        raw = {"allOf": [{"$ref": "#/$defs/A"}, {"$ref": "#/$defs/B"}]}
+        self.assertEqual(read_schema(raw, Reporter()).schema_shape(),
+                         SchemaShape.COMPOSITION)
+        out = render(raw)
+        self.assertIn("**All of:** [`A`](#schemas-a) | [`B`](#schemas-b)", out)
+        self.assertNotIn(ALTERNATIVES, out)
+
+    def test_a_declared_type_makes_the_composition_a_constraint(self):
         raw = {"type": "object",
                "allOf": [{"$ref": "#/$defs/A"}, {"$ref": "#/$defs/B"}]}
         self.assertEqual(read_schema(raw, Reporter()).schema_shape(),
-                         SchemaShape.COMPOSITION)
+                         SchemaShape.OBJECT)
         out = render(raw)
         self.assertIn("**All of:** [`A`](#schemas-a) | [`B`](#schemas-b)", out)
         self.assertNotIn(ALTERNATIVES, out)
