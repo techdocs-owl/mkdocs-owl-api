@@ -9,7 +9,7 @@ supplies `sections()`.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Iterable
 
 from ..options import PageOptions, ResolvedAttachment
 from .doc_model import ApiDoc
@@ -32,7 +32,6 @@ class RenderContext:
     rendering starts.
     """
 
-    spec: dict[str, Any]
     options: PageOptions
     spec_url: str = ""
     attachments: tuple[ResolvedAttachment, ...] = ()
@@ -94,16 +93,3 @@ class MarkdownRenderer:
 
     def render(self) -> str:
         return join_blocks(self.preamble() + self.sections())
-
-
-class PageBuilder:
-    """
-    What the plugin registers against a `type:`. A raw description in, a page
-    out; a subclass parses and hands the model to its renderer.
-    """
-
-    def __init__(self, ctx: RenderContext):
-        self.ctx = ctx
-
-    def build_page(self) -> str:
-        raise NotImplementedError

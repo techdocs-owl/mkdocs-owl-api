@@ -14,7 +14,7 @@ from typing import Any
 
 import yaml
 
-from ..common.render import MarkdownRenderer, PageBuilder, RenderContext
+from ..common.render import MarkdownRenderer
 from ..common.primitives.markup import (
     _anchor,
     _demote_headings,
@@ -37,7 +37,6 @@ from ..jsonschema.schema_render import describe, format_type, render_schema
 from .model import (
     AsyncApiDoc, Channel, Message, Operation, OperationAction, Server,
 )
-from .parser import parse_document
 
 
 PARAMETER_HEADERS = ("Name", "Type", "Description")
@@ -378,14 +377,3 @@ class AsyncApiRenderer(MarkdownRenderer):
         return blocks
 
 
-class AsyncApiPageBuilder(PageBuilder):
-    """Page builder for `type: asyncapi`."""
-
-    def __init__(self, ctx: RenderContext):
-        super().__init__(ctx)
-        result = parse_document(ctx.spec)
-        self.doc = result.doc
-        self.warnings = result.warnings
-
-    def build_page(self) -> str:
-        return AsyncApiRenderer(self.doc, self.ctx).render()

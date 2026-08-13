@@ -6,18 +6,17 @@ Renders OpenApi/AsyncApi specification in md.
 
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
+from types import ModuleType
 
 from mkdocs.config import config_options as mkdocs_config_options
 from mkdocs.config.base import Config
 from mkdocs.plugins import BasePlugin, get_plugin_logger
 from mkdocs.structure.files import File
 
-from .asyncapi.render import AsyncApiPageBuilder
-from .common.render import PageBuilder, RenderContext
-from .jsonschema.render import JsonSchemaPageBuilder
+from .common.render import RenderContext
 from .loader import _load_spec, _save_attachments, _save_spec
-from .openapi.render import OpenApiPageBuilder
 from .options import PageOptions, site_default
 
 log = get_plugin_logger(__name__)
@@ -28,13 +27,21 @@ _CSS_SRC_URI = f"assets/{_CSS_FILENAME}"
 
 _FRONTMATTER_KEY = "techdocs-owl"
 
-#: `type:` -> page builder. The dispatch seam a sibling `techdocs-owl-*` plugin
-#: relies on: a `type:` this plugin does not own must pass through untouched.
-_RENDERERS: dict[str, type[PageBuilder]] = {
-    "openapi": OpenApiPageBuilder,
-    "asyncapi": AsyncApiPageBuilder,
-    "jsonschema": JsonSchemaPageBuilder,
-}
+def _format_module(name: str) -> ModuleType:
+    """
+    The package that owns a `type:`.
+
+    Format module requires `["Renderer", "parse_document"]`.
+    """
+    target = f"{__package__}.{name}"
+    if not name.isidentifier():
+        raise ValueError(f"unknown spec type `{name}`")
+    try:
+        return importlib.import_module(target)
+    except ModuleNotFoundError as exc:
+        if exc.name == target:
+            raise ValueError(f"unknown spec type `{name}`") from exc
+        raise
 
 
 def _error_page(title: str, detail: str) -> str:
@@ -96,16 +103,18 @@ class OwlApiPlugin(BasePlugin[OwlApiConfig]):
                  opts.type, page.file.src_path, opts.spec)
         spec = _load_spec(opts.spec, base)
 
-        # Assets are registered here, before rendering, so that the builders
+        # Assets are registered here, before rendering, so that the renderers
         # receive resolved data and never touch mkdocs objects. mkdocs calls
         # `page.render(config, files)` straight after `on_page_markdown`, so
         # registration has to be complete by the time we return - see CLAUDE.md.
         download_link = _save_spec(spec, page, config, files)
         attachments = _save_attachments(opts.attachments, page, config, files)
 
-        return _RENDERERS[opts.type](RenderContext(
-            spec=spec,
+        fmt = _format_module(opts.type)
+
+        parse_result = fmt.parse_document(spec)
+        return fmt.Renderer(parse_result.doc, RenderContext(
             options=opts,
             spec_url=download_link,
             attachments=tuple(attachments),
-        )).build_page()
+        )).render()

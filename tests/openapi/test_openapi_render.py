@@ -14,7 +14,7 @@ from mkdocs_owl_api.jsonschema.schema_render import (
     property_rows,
     render_schema,
 )
-from mkdocs_owl_api.openapi.render import OpenApiPageBuilder
+from mkdocs_owl_api.openapi import Renderer, parse_document
 from mkdocs_owl_api.options import PageOptions
 
 from ..fixtures import API_V2, API_V30, API_V31
@@ -22,7 +22,7 @@ from ..fixtures import API_V2, API_V30, API_V31
 
 def render(spec, **options):
     opts = PageOptions(type="openapi", spec="spec.json", **options)
-    return OpenApiPageBuilder(RenderContext(spec=spec, options=opts)).build_page()
+    return Renderer(parse_document(spec).doc, RenderContext(options=opts)).render()
 
 
 class TestFormatType(unittest.TestCase):

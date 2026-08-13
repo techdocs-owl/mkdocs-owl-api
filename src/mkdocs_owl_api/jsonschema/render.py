@@ -7,9 +7,8 @@ from __future__ import annotations
 from dataclasses import replace
 
 from ..common.primitives.markup import _anchor, _heading
-from ..common.render import MarkdownRenderer, PageBuilder, RenderContext
+from ..common.render import MarkdownRenderer
 from .model import JsonSchemaDoc
-from .parser import parse_document
 from .schema_render import render_schema
 
 
@@ -56,12 +55,3 @@ class JsonSchemaRenderer(MarkdownRenderer):
         return blocks
 
 
-class JsonSchemaPageBuilder(PageBuilder):
-    def __init__(self, ctx: RenderContext):
-        super().__init__(ctx)
-        result = parse_document(ctx.spec)
-        self.doc = result.doc
-        self.warnings = result.warnings
-
-    def build_page(self) -> str:
-        return JsonSchemaRenderer(self.doc, self.ctx).render()

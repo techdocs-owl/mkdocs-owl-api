@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from ..common.render import MarkdownRenderer, PageBuilder, RenderContext
+from ..common.render import MarkdownRenderer
 from ..common.primitives.markup import (
     _anchor,
     _demote_headings,
@@ -44,7 +44,6 @@ from ..jsonschema.schema_render import (
 from .model import (
     HttpMethod, OpenApiDoc, MediaType, Operation, Parameter, Response, Server,
 )
-from .parser import parse_document
 
 #: Section for operations that declare no tag of their own.
 DEFAULT_TAG = "Endpoints"
@@ -320,18 +319,3 @@ class OpenApiRenderer(MarkdownRenderer):
 
 
 
-class OpenApiPageBuilder(PageBuilder):
-    """
-    Page builder for `type: openapi`.
-
-    Parses the raw description once, then renders from the model.
-    """
-
-    def __init__(self, ctx: RenderContext):
-        super().__init__(ctx)
-        result = parse_document(ctx.spec)
-        self.doc = result.doc
-        self.warnings = result.warnings
-
-    def build_page(self) -> str:
-        return OpenApiRenderer(self.doc, self.ctx).render()

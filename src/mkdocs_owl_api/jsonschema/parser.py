@@ -5,17 +5,16 @@ Parser for a JsonSchema document.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 from typing import Any
 
 from ..common.doc_model import Info
-from ..common.parse_report import ParseWarning, Reporter
+from ..common.parse_report import ParseResult, Reporter
 from ..common.parse_util import is_mapping, kind_of, read_mapping, read_str
 from .model import JsonSchemaDialect, JsonSchemaDoc
 from .schema_model import Schema
 from .schema_parser import read_schema
 
-__all__ = ["ParseResult", "parse_document"]
+__all__ = ["parse_document"]
 
 _DIALECTS = {
     "draft-04": JsonSchemaDialect.DRAFT_04,
@@ -26,12 +25,6 @@ _DIALECTS = {
 }
 
 _FALLBACK = JsonSchemaDialect.DRAFT_2020_12
-
-
-@dataclass(frozen=True)
-class ParseResult:
-    doc: JsonSchemaDoc
-    warnings: tuple[ParseWarning, ...] = ()
 
 
 def _detect(raw: Mapping[str, Any], report: Reporter) -> tuple[JsonSchemaDialect, str]:

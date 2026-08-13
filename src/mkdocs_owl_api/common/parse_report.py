@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .doc_model import ApiDoc
+
 
 def _escape(segment: str) -> str:
     """JSON Pointer escaping, per RFC 6901."""
@@ -59,3 +61,13 @@ class Reporter:
     @property
     def warnings(self) -> tuple[ParseWarning, ...]:
         return tuple(self._sink)
+
+
+@dataclass(frozen=True)
+class ParseResult:
+    """
+    A parsed document and everything that could not be used along the way.
+    """
+
+    doc: ApiDoc
+    warnings: tuple[ParseWarning, ...] = ()

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from mkdocs_owl_api.asyncapi.render import AsyncApiPageBuilder
+from mkdocs_owl_api.asyncapi import Renderer, parse_document
 from mkdocs_owl_api.common.render import RenderContext
 from mkdocs_owl_api.options import PageOptions
 
@@ -11,7 +11,7 @@ from ..fixtures import ASYNCAPI_V2, ASYNCAPI_V3
 
 def render(spec, **options):
     opts = PageOptions(type="asyncapi", spec="spec.yml", **options)
-    return AsyncApiPageBuilder(RenderContext(spec=spec, options=opts)).build_page()
+    return Renderer(parse_document(spec).doc, RenderContext(options=opts)).render()
 
 
 class TestPage(unittest.TestCase):
