@@ -46,7 +46,7 @@ aborting the build.
 
 ## Requires
 
-- **Python**: 3.9+
+- **Python**: 3.10+
 - **MkDocs**: 1.6+
 - **PyYAML**: 6.0+
 - **Markdown**: 3.4+

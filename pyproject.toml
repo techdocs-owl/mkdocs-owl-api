@@ -5,7 +5,7 @@ description = "MkDocs plugin from TechDocs Owl, renders AsyncAPI and OpenAPI spe
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     { name = "Dima Patserkovskyi", email = "dmtwngtech@pm.me" },
 ]
@@ -23,7 +23,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -37,6 +36,7 @@ dependencies = [
     "mkdocs>=1.6",
     "PyYAML>=6.0",
     "Markdown>=3.4",
+    "fsspec[http]>=2024.5",
 ]
 
 [project.urls]

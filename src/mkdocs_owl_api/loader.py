@@ -1,236 +1,144 @@
 """
-Fetch AsyncAPI/OpenAPI specs from local paths or HTTP(S) URLs, resolve external `$ref`s recursively,
-persist the resolved spec plus any declared attachments as downloadable build assets.
+Read AsyncAPI/OpenAPI/JSON Schema specs. Reload and inline `$ref`s.
 """
 
 from __future__ import annotations
 
+import copy
 import json
-import urllib.error
-import urllib.request
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urldefrag, urljoin, urlsplit
 
+import fsspec
 import yaml
-from mkdocs.structure.files import File
-
-from .options import Attachment, ResolvedAttachment
-
-ASSET_DIR = "assets/techdocs-owl-api"
 
 
 class SpecError(Exception):
     """The spec could not be fetched, read or parsed."""
 
 
-def _is_url(uri: str) -> bool:
-    return uri.startswith("http://") or uri.startswith("https://")
-
-
-def _parse_text(text: str) -> Any:
+def _parse(text: str) -> Any:
     """
-    Parse spec text: JSON first, YAML second.
+    Spec text as data in JSON or YAML.
     """
     try:
         return json.loads(text)
-    except (json.JSONDecodeError, ValueError):
+    except ValueError:
         return yaml.safe_load(text)
 
 
-def _fetch_and_parse(uri: str, cache: dict[str, Any]) -> Any:
+def _pointer(doc: Any, fragment: str) -> Any:
     """
-    Fetch a URI (HTTP URL or local file path) and parse as JSON/YAML.
+    Value at an RFC 6901 JSON pointer, or None where the pointer does not resolve.
     """
-    if uri in cache:
-        return cache[uri]
-
-    if _is_url(uri):
-        try:
-            with urllib.request.urlopen(uri, timeout=30) as resp:
-                text = resp.read().decode("utf-8")
-        except (urllib.error.URLError, OSError):
-            cache[uri] = None
+    for token in unquote(fragment).lstrip("/").split("/") if fragment else []:
+        token = token.replace("~1", "/").replace("~0", "~")
+        if isinstance(doc, dict):
+            if token not in doc:
+                return None
+            doc = doc[token]
+        elif isinstance(doc, list) and token.isdigit() and int(token) < len(doc):
+            doc = doc[int(token)]
+        else:
             return None
-    else:
+    return doc
+
+
+class FileReader:
+    """
+    Reads a location as text or bytes.
+    """
+
+    def __init__(self, base: Path | str = ".") -> None:
+        self._base = Path(base)
+
+    def uri(self, location: str) -> str:
+        """
+        Absolute URI for `location`, resolving a relative path against `base`.
+        """
+        if len(urlsplit(location).scheme) > 1:
+            return location
+        return (self._base / location).resolve().as_uri()
+
+    def read_text(self, location: str, encoding: str = "utf-8") -> str:
+        with fsspec.open(urldefrag(self.uri(location)).url, "rt", encoding=encoding) as handle:
+            return handle.read()
+
+    def read_bytes(self, location: str) -> bytes:
+        with fsspec.open(urldefrag(self.uri(location)).url, "rb") as handle:
+            return handle.read()
+
+
+class SpecReader:
+    """
+    Reads a spec document as data and inlines its external `$ref`s.
+    """
+
+    def __init__(self, base: Path | str = ".", reader: FileReader | None = None) -> None:
+        self._reader = reader or FileReader(base)
+        self._cache: dict[str, Any] = {}
+
+    def read(self, location: str) -> dict[str, Any]:
+        """
+        Reads the spec at `location`, with external refs inlined.
+        """
+        uri = self._reader.uri(location)
         try:
-            text = Path(uri).read_text(encoding="utf-8")
-        except OSError:
-            cache[uri] = None
-            return None
-
-    try:
-        result = _parse_text(text)
-    except yaml.YAMLError:
-        result = None
-    cache[uri] = result
-    return result
-
-
-def _resolve_uri(ref: str, base_uri: str) -> str:
-    """
-    Resolve a $ref against a base URI (URL or file path).
-    """
-    if _is_url(ref):
-        return ref
-    if _is_url(base_uri):
-        from urllib.parse import urljoin
-        return urljoin(base_uri, ref)
-    return str((Path(base_uri).parent / ref).resolve())
-
-
-def _base_uri_for(uri: str) -> str:
-    """
-    Return the base URI to use for resolving relative refs within a document.
-    """
-    return uri
-
-
-def _resolve_external_refs(node: Any, base_uri: str, cache: dict[str, Any] | None = None) -> None:
-    """
-    Recursively resolve external `$ref` values in-place.
-    Internal `#/...` refs are left untouched.
-    """
-    if cache is None:
-        cache = {}
-    if isinstance(node, dict):
-        ref = node.get("$ref")
-        if isinstance(ref, str) and not ref.startswith("#"):
-            resolved_uri = _resolve_uri(ref, base_uri)
-            resolved = _fetch_and_parse(resolved_uri, cache)
-            if isinstance(resolved, dict):
-                node.pop("$ref")
-                node.update(resolved)
-                _resolve_external_refs(node, _base_uri_for(resolved_uri), cache)
-            return
-        for v in node.values():
-            _resolve_external_refs(v, base_uri, cache)
-    elif isinstance(node, list):
-        for item in node:
-            if isinstance(item, (dict, list)):
-                _resolve_external_refs(item, base_uri, cache)
-
-
-def _load_spec(spec_ref: str, base: Path) -> dict[str, Any]:
-    """
-    Load and parse (JSON or YAML) an AsyncAPI/OpenAPI spec from a local path or HTTP(S) URL.
-
-    Raises `SpecError` on any failure - `on_page_markdown` turns it into an error page.
-    """
-    is_url = _is_url(spec_ref)
-
-    if is_url:
-        try:
-            with urllib.request.urlopen(spec_ref, timeout=30) as resp:
-                text = resp.read().decode("utf-8")
-        except urllib.error.HTTPError as exc:
-            raise SpecError(f"spec HTTP error: `{spec_ref}`: {exc.code} {exc.reason}") from exc
-        except (urllib.error.URLError, OSError) as exc:
-            raise SpecError(f"spec fetch error: `{spec_ref}`: {exc}") from exc
-    else:
-        spec_path = (base / spec_ref).resolve()
-        try:
-            text = spec_path.read_text(encoding="utf-8")
+            text = self._reader.read_text(uri)
         except FileNotFoundError as exc:
-            raise SpecError(f"spec file not found: `{spec_path}`") from exc
-        except OSError as exc:
-            raise SpecError(f"spec read error: `{spec_path}`: {exc}") from exc
+            raise SpecError(f"spec file not found: `{uri}`") from exc
+        except Exception as exc:
+            raise SpecError(f"spec read error: `{uri}`: {exc}") from exc
 
-    source_label = spec_ref if is_url else str(spec_path)
-
-    try:
-        spec = _parse_text(text)
-    except yaml.YAMLError as exc:
-        raise SpecError(f"spec parse error: `{source_label}`: {exc}") from exc
-
-    if spec is None:
-        raise SpecError(f"spec file is empty: `{source_label}` contains no content.")
-    if not isinstance(spec, dict):
-        raise SpecError(f"unexpected spec content: `{source_label}` did not parse to a mapping.")
-
-    _resolve_external_refs(spec, spec_ref if is_url else str(spec_path))
-
-    return spec
-
-
-def _read_bytes(src: str, base: Path) -> tuple[bytes | None, str | None]:
-    """Read raw bytes from a local path or HTTP(S) URL.
-
-    Returns (content, None) on success or (None, error_message) on failure.
-    """
-    if _is_url(src):
         try:
-            with urllib.request.urlopen(src, timeout=30) as resp:
-                return resp.read(), None
-        except urllib.error.HTTPError as exc:
-            return None, f"{exc.code} {exc.reason}"
-        except (urllib.error.URLError, OSError) as exc:
-            return None, str(exc)
-    path = (base / src).resolve()
-    try:
-        return path.read_bytes(), None
-    except OSError as exc:
-        return None, str(exc)
+            spec = _parse(text)
+        except yaml.YAMLError as exc:
+            raise SpecError(f"spec parse error: `{uri}`: {exc}") from exc
 
+        if spec is None:
+            raise SpecError(f"spec file is empty: `{uri}` contains no content.")
+        if not isinstance(spec, dict):
+            raise SpecError(f"unexpected spec content: `{uri}` did not parse to a mapping.")
 
-def _register(files, config, rel_path: str, content: str | bytes) -> None:
-    """Add `content` to the build as a generated file at {ASSET_DIR}/... .
-    """
-    existing = files.get_file_from_path(rel_path)
-    if existing is not None:
-        files.remove(existing)
-    files.append(File.generated(config, rel_path, content=content))
+        self._cache[urldefrag(uri).url] = spec
+        self._inline(spec, uri, frozenset())
+        return spec
 
+    def _document(self, uri: str) -> Any:
+        """The parsed document at `uri`, or None if it cannot be read."""
+        if uri not in self._cache:
+            try:
+                self._cache[uri] = _parse(self._reader.read_text(uri))
+            except Exception:
+                self._cache[uri] = None
+        return self._cache[uri]
 
-def _save_spec(spec: dict[str, Any], page, config, files) -> str:
-    """Register the resolved spec as {ASSET_DIR}/<slug>.json
-    and return the relative URL to the spec file from the page.
-    """
-    slug = Path(page.file.src_path).stem
-    rel_spec = f"{ASSET_DIR}/{slug}.json"
-    _register(files, config, rel_spec, json.dumps(spec, indent=2, default=str))
+    def _inline(self, node: Any, base_uri: str, seen: frozenset[str]) -> None:
+        """Replace every external `$ref` at or below `node`, in place."""
+        if isinstance(node, dict):
+            ref = node.get("$ref")
+            if isinstance(ref, str) and not ref.startswith("#"):
+                self._expand(node, urljoin(base_uri, ref), seen)
+                return
+            for value in node.values():
+                self._inline(value, base_uri, seen)
+        elif isinstance(node, list):
+            for item in node:
+                self._inline(item, base_uri, seen)
 
-    page_dir = Path(page.file.src_path).parent
-    up = "../" * len(page_dir.parts)
-    return f"{up}{rel_spec}"
+    def _expand(self, node: dict[str, Any], target: str, seen: frozenset[str]) -> None:
+        """
+        Splice the document at `target` into `node`.
+        """
+        if target in seen:
+            return
+        doc_uri, fragment = urldefrag(target)
+        resolved = _pointer(self._document(doc_uri), fragment)
+        if not isinstance(resolved, dict):
+            return
 
-
-def _save_attachments(
-    attachments: Sequence[Attachment], page, config, files,
-) -> list[ResolvedAttachment]:
-    """Read each attachment, register it as {ASSET_DIR}/<slug>-<filename>,
-    and return one `ResolvedAttachment` each (url is None on failure).
-
-    Entries arrive already parsed as `Attachment`s, so shape handling lives in
-    `options`, not here.
-    """
-    if not attachments:
-        return []
-
-    base = Path(page.file.abs_src_path).resolve().parent
-    slug = Path(page.file.src_path).stem
-    page_dir = Path(page.file.src_path).parent
-    up = "../" * len(page_dir.parts)
-
-    results: list[ResolvedAttachment] = []
-    for item in attachments:
-        src = item.path
-        # `Path(...).name` handles both branches: a URL's query string is
-        # stripped first, and a local path has nothing to strip.
-        filename = Path(src.split("?")[0]).name
-        label = item.title or filename
-
-        content, err = _read_bytes(src, base)
-        if err is not None:
-            results.append(ResolvedAttachment(
-                title=label, description=item.description, error=err))
-            continue
-
-        out_name = f"{slug}-{filename}"
-        rel_path = f"{ASSET_DIR}/{out_name}"
-        _register(files, config, rel_path, content)
-
-        results.append(ResolvedAttachment(
-            title=label, description=item.description, url=f"{up}{rel_path}"))
-
-    return results
+        node.pop("$ref")
+        for key, value in copy.deepcopy(resolved).items():
+            node.setdefault(key, value)
+        self._inline(node, doc_uri, seen | {target})

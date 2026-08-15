@@ -15,7 +15,8 @@ def _fake_page(meta: dict, src_path: str, abs_src_path: str):
     """Minimal stand-in for a MkDocs Page (only the attributes the plugin uses)."""
     return SimpleNamespace(
         meta=meta,
-        file=SimpleNamespace(src_path=src_path, abs_src_path=abs_src_path),
+        file=SimpleNamespace(
+            src_path=src_path, src_uri=src_path, abs_src_path=abs_src_path),
     )
 
 

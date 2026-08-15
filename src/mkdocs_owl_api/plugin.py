@@ -15,8 +15,9 @@ from mkdocs.config.base import Config
 from mkdocs.plugins import BasePlugin, get_plugin_logger
 from mkdocs.structure.files import File
 
+from .attachments import _save_attachments, _save_spec
 from .common.render import RenderContext
-from .loader import _load_spec, _save_attachments, _save_spec
+from .loader import SpecReader
 from .options import PageOptions, site_default
 
 log = get_plugin_logger(__name__)
@@ -101,7 +102,7 @@ class OwlApiPlugin(BasePlugin[OwlApiConfig]):
         base = Path(page.file.abs_src_path).resolve().parent
         log.info("found %s spec in page '%s' with url '%s'",
                  opts.type, page.file.src_path, opts.spec)
-        spec = _load_spec(opts.spec, base)
+        spec = SpecReader(base).read(opts.spec)
 
         # Assets are registered here, before rendering, so that the renderers
         # receive resolved data and never touch mkdocs objects. mkdocs calls
