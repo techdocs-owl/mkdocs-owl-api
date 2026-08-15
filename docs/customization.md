@@ -163,7 +163,7 @@ trimming sections that are specific to event-driven specs:
 | Key | Type | Default | Effect |
 |---|---|---|---|
 | `hide_bindings` | bool | `false` | Skip bindings on servers/channels/operations/messages. |
-| `hide_traits` | bool | `false` | Skip trait sections and references. |
+| `hide_traits` | bool | `false` | Skip naming the traits an operation or message applies. |
 | `hide_security` | bool | `false` | Skip security admonitions. |
 
 It renders, in order, skipping any section absent from the spec:
@@ -171,11 +171,10 @@ It renders, in order, skipping any section absent from the spec:
 1. **Info** - title, version, downloads, license/contact/external docs, description.
 2. **Servers** - host, protocol, security, bindings.
 3. **Operations** - operation-centric across both AsyncAPI versions
-   (2.x `publish`/`subscribe` and 3.0 top-level `operations`).
-4. **Messages** - headers, payload, traits, examples, bindings.
+   (2.x `publish`/`subscribe` and 3.0 top-level `operations`), each with the
+   parameters of the channel it runs on.
+4. **Messages** - headers, payload, examples, bindings.
 5. **Schemas** - property tables with constraints.
-6. **Parameters**.
-7. **Traits** - message and operation traits.
 
 See the [Streetlight example](examples/streetlight.md) for a live render.
 

@@ -31,8 +31,7 @@ class TestPage(unittest.TestCase):
                          "### production",
                          ":material-link-variant: `mqtt://test.mosquitto.org:8883`",
                          "## Operations", "### receiveLightMeasurement",
-                         "## Messages", "### LightMeasured", "## Schemas",
-                         "## Parameters", "## Message traits"):
+                         "## Messages", "### LightMeasured", "## Schemas"):
             with self.subTest(expected=expected):
                 self.assertIn(expected, page)
 
@@ -77,9 +76,9 @@ class TestPage(unittest.TestCase):
         self.assertIn("**Headers**", message)
         self.assertIn("my-app-header", message)
 
-    def test_traits_are_named(self):
-        self.assertIn("[`commonHeaders`](#messagetraits-commonheaders)",
-                      render(ASYNCAPI_V3))
+    def test_traits_are_named_where_they_were_applied(self):
+        message = render(ASYNCAPI_V3).split("### LightMeasured")[1].split("## ")[0]
+        self.assertIn("**Traits:** `commonHeaders`", message)
 
     def test_payload_links_to_the_schema_section(self):
         self.assertIn("[`lightMeasuredPayload`](#schemas-lightmeasuredpayload)",
@@ -92,7 +91,7 @@ class TestPage(unittest.TestCase):
     def test_options_are_honoured(self):
         self.assertIn("# Custom", render(ASYNCAPI_V3, title="Custom"))
         self.assertNotIn("**Version:**", render(ASYNCAPI_V3, hide_version=True))
-        self.assertNotIn("## Message traits", render(ASYNCAPI_V3, hide_traits=True))
+        self.assertNotIn("**Traits:**", render(ASYNCAPI_V3, hide_traits=True))
         self.assertNotIn("Security: apiKey", render(ASYNCAPI_V3, hide_security=True))
 
     def test_security_is_rendered_for_a_server(self):

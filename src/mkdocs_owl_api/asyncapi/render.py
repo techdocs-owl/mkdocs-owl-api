@@ -76,8 +76,17 @@ def _ref_bullets(label: str, names, section: str) -> list[str]:
     return [label, bullets]
 
 
+def _trait_names(names: tuple[str, ...]) -> list[str]:
+    """
+    The traits that were applied.
+    """
+    if not names:
+        return []
+    return ["**Traits:** " + ", ".join(f"`{name}`" for name in names)]
+
+
 class AsyncApiRenderer(MarkdownRenderer):
-    """Servers, operations, messages, schemas, parameters, then traits."""
+    """Servers, operations, messages, schemas."""
 
     doc: AsyncApiDoc
 
@@ -88,8 +97,6 @@ class AsyncApiRenderer(MarkdownRenderer):
             + self.operations()
             + self.messages()
             + self.schemas()
-            + self.parameters()
-            + self.traits()
         )
 
     def default_content_type(self) -> list[str]:
@@ -198,8 +205,7 @@ class AsyncApiRenderer(MarkdownRenderer):
         blocks.extend(_ref_bullets("**Messages:**", operation.message_names, "messages"))
         blocks.extend(tag_pills(operation.tags))
         if not self.options.hide_traits:
-            blocks.extend(_ref_bullets("**Traits:**", operation.trait_names,
-                                       "operationtraits"))
+            blocks.extend(_trait_names(operation.trait_names))
         blocks.extend(_bindings(operation.bindings, hide=self.options.hide_bindings))
         if channel is not None:
             # A channel has no section of its own, so what it binds is shown
@@ -296,8 +302,7 @@ class AsyncApiRenderer(MarkdownRenderer):
                 ))
 
         if not self.options.hide_traits:
-            blocks.extend(_ref_bullets("**Traits:**", message.trait_names,
-                                       "messagetraits"))
+            blocks.extend(_trait_names(message.trait_names))
         blocks.extend(self.examples(message))
         blocks.extend(_bindings(message.bindings, hide=self.options.hide_bindings))
         return blocks
@@ -319,7 +324,7 @@ class AsyncApiRenderer(MarkdownRenderer):
                 parts.append(f"```yaml\n{rendered}\n```")
         return parts
 
-    # -- the rest -----------------------------------------------------------
+    # -- schemas ------------------------------------------------------------
 
     def schemas(self) -> list[str]:
         schemas = self.doc.components.schemas
@@ -333,47 +338,4 @@ class AsyncApiRenderer(MarkdownRenderer):
                 max_depth=self.options.schema_depth,
             ))
         return blocks
-
-    def parameters(self) -> list[str]:
-        parameters = self.doc.components.parameters
-        if not parameters:
-            return []
-        blocks: list[str] = ["## Parameters"]
-        for name, parameter in parameters.items():
-            blocks.append(_heading(3, name, anchor=_anchor("parameters", name)))
-            if parameter.description:
-                blocks.append(_demote_headings(parameter.description.strip()))
-            if parameter.schema is not None:
-                blocks.extend(render_schema(
-                    parameter.schema, hide_internal=self.options.hide_internal,
-                    max_depth=self.options.schema_depth,
-                ))
-            if parameter.location:
-                blocks.append(f"**Location:** `{parameter.location}`")
-        return blocks
-
-    def traits(self) -> list[str]:
-        if self.options.hide_traits:
-            return []
-        blocks: list[str] = []
-
-        message_traits = self.doc.components.message_traits
-        if message_traits:
-            blocks.append("## Message traits")
-            for name, trait in message_traits.items():
-                blocks.append(_heading(3, name, anchor=_anchor("messagetraits", name)))
-                blocks.extend(self.message(trait, name))
-
-        operation_traits = self.doc.components.operation_traits
-        if operation_traits:
-            blocks.append("## Operation traits")
-            for name, trait in operation_traits.items():
-                blocks.append(_heading(3, name, anchor=_anchor("operationtraits", name)))
-                if trait.description:
-                    blocks.append(_demote_headings(trait.description.strip()))
-                blocks.extend(tag_pills(trait.tags))
-                blocks.extend(_bindings(trait.bindings,
-                                        hide=self.options.hide_bindings))
-        return blocks
-
 
