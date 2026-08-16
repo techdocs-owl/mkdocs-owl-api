@@ -41,7 +41,6 @@ plugins:
       schema_depth: 3
       hide_internal: false
       hide_bindings: false
-      hide_traits: false
       hide_security: false
       hide_version: false
       hide_download_link: false
@@ -71,15 +70,14 @@ techdocs-owl:
 | `hide_version` | bool | `false` | Hide the version line. |
 | `hide_internal` | bool | `false` | Drop properties marked `x-internal-only: true`. |
 | `hide_bindings` | bool | `false` | Skip bindings on servers/channels/operations/messages. |
-| `hide_traits` | bool | `false` | Skip trait sections and references. |
 | `hide_security` | bool | `false` | Skip security admonitions. |
 | `hide_download_link` | bool | `false` | Hide the spec download link. |
 | `schema_depth` | int | `3` | Depth of dot-path flattening for nested object properties. |
 | `attachments` | list | - | Extra files to copy and list in the attachments table. |
 
 Renders, in order: info, Servers, Operations (operation-centric across
-both AsyncAPI versions), Messages, Schemas, Parameters, Traits - sections
-absent from the spec are skipped.
+both AsyncAPI versions), Messages, Schemas, Parameters - sections absent
+from the spec are skipped.
 
 ## OpenAPI pages
 

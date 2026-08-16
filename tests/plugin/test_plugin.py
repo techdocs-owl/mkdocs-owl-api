@@ -39,7 +39,6 @@ class TestOwlApiConfig(unittest.TestCase):
         self.assertEqual(cfg.schema_depth, 3)
         self.assertFalse(cfg.hide_internal)
         self.assertFalse(cfg.hide_bindings)
-        self.assertFalse(cfg.hide_traits)
         self.assertFalse(cfg.hide_security)
         self.assertFalse(cfg.hide_version)
         self.assertFalse(cfg.hide_download_link)

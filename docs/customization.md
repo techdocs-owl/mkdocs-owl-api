@@ -163,7 +163,6 @@ trimming sections that are specific to event-driven specs:
 | Key | Type | Default | Effect |
 |---|---|---|---|
 | `hide_bindings` | bool | `false` | Skip bindings on servers/channels/operations/messages. |
-| `hide_traits` | bool | `false` | Skip naming the traits an operation or message applies. |
 | `hide_security` | bool | `false` | Skip security admonitions. |
 
 It renders, in order, skipping any section absent from the spec:

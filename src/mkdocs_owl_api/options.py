@@ -106,7 +106,6 @@ class PageOptions:
     hide_version: bool = False
     hide_download_link: bool = False
     hide_bindings: bool = False
-    hide_traits: bool = False
     hide_security: bool = False
     attachments: tuple[Attachment, ...] = ()
 
@@ -145,7 +144,6 @@ class PageOptions:
             hide_version=_as_bool(merged.get("hide_version")),
             hide_download_link=_as_bool(merged.get("hide_download_link")),
             hide_bindings=_as_bool(merged.get("hide_bindings")),
-            hide_traits=_as_bool(merged.get("hide_traits")),
             hide_security=_as_bool(merged.get("hide_security")),
             attachments=_as_attachments(merged.get("attachments")),
         )

@@ -77,15 +77,6 @@ def _ref_bullets(label: str, names, section: str) -> list[str]:
     return [label, bullets]
 
 
-def _trait_names(names: tuple[str, ...]) -> list[str]:
-    """
-    The traits that were applied.
-    """
-    if not names:
-        return []
-    return ["**Traits:** " + ", ".join(f"`{name}`" for name in names)]
-
-
 class AsyncApiRenderer(MarkdownRenderer):
     """Servers, operations, messages, schemas."""
 
@@ -202,8 +193,6 @@ class AsyncApiRenderer(MarkdownRenderer):
 
         blocks.extend(_ref_bullets("**Messages:**", operation.message_names, "messages"))
         blocks.extend(tag_pills(operation.tags))
-        if not self.options.hide_traits:
-            blocks.extend(_trait_names(operation.trait_names))
         blocks.extend(_bindings(operation.bindings, hide=self.options.hide_bindings))
         if channel is not None:
             # A channel has no section of its own, so what it binds is shown
@@ -299,8 +288,6 @@ class AsyncApiRenderer(MarkdownRenderer):
                     max_depth=self.options.schema_depth,
                 ))
 
-        if not self.options.hide_traits:
-            blocks.extend(_trait_names(message.trait_names))
         blocks.extend(self.examples(message))
         blocks.extend(_bindings(message.bindings, hide=self.options.hide_bindings))
         return blocks

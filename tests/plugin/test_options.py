@@ -15,12 +15,13 @@ class TestResolve(unittest.TestCase):
 
     def test_frontmatter_overrides_site_defaults(self):
         opts = PageOptions.resolve(
-            {"schema_depth": 3, "hide_traits": False},
-            {"type": "asyncapi", "spec": "a.yml", "schema_depth": 5, "hide_traits": True},
+            {"schema_depth": 3, "hide_bindings": False},
+            {"type": "asyncapi", "spec": "a.yml", "schema_depth": 5,
+             "hide_bindings": True},
         )
         self.assertEqual(opts.spec, "a.yml")
         self.assertEqual(opts.schema_depth, 5)
-        self.assertTrue(opts.hide_traits)
+        self.assertTrue(opts.hide_bindings)
 
     def test_site_defaults_apply_when_page_is_silent(self):
         opts = PageOptions.resolve({"hide_bindings": True},
@@ -128,7 +129,7 @@ class TestType(unittest.TestCase):
 class TestSiteDefault(unittest.TestCase):
     def test_matches_dataclass_fields(self):
         self.assertEqual(site_default("schema_depth"), 3)
-        self.assertIs(site_default("hide_traits"), False)
+        self.assertIs(site_default("hide_security"), False)
 
     def test_unknown_key(self):
         with self.assertRaises(KeyError):

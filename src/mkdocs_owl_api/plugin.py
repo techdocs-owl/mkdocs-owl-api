@@ -63,7 +63,6 @@ class OwlApiConfig(Config):
     schema_depth = mkdocs_config_options.Type(int, default=site_default("schema_depth"))
     hide_internal = mkdocs_config_options.Type(bool, default=site_default("hide_internal"))
     hide_bindings = mkdocs_config_options.Type(bool, default=site_default("hide_bindings"))
-    hide_traits = mkdocs_config_options.Type(bool, default=site_default("hide_traits"))
     hide_security = mkdocs_config_options.Type(bool, default=site_default("hide_security"))
     hide_version = mkdocs_config_options.Type(bool, default=site_default("hide_version"))
     hide_download_link = mkdocs_config_options.Type(
