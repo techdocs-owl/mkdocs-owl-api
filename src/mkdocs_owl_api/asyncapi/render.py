@@ -32,9 +32,9 @@ from ..common.primitives.pills import (
     scheme_pill,
     tag_pills,
 )
-from ..jsonschema.schema_model import Schema
+from ..model.jsonschema.schema_types import Schema
 from ..jsonschema.schema_render import describe, format_type, render_schema
-from .model import (
+from ..model.asyncapi.types import (
     AsyncApiDoc, Channel, Message, Operation, OperationAction, Server,
 )
 

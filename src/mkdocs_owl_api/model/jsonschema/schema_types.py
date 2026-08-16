@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from ..common.doc_model import ExternalDocs
+from ..doc_types import ExternalDocs
 
 
 class SchemaShape(Enum):

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .doc_model import ApiDoc
+from .doc_types import ApiDoc
 
 
 def _escape(segment: str) -> str:

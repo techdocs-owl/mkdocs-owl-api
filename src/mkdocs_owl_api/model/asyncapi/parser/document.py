@@ -13,10 +13,10 @@ from collections.abc import Mapping
 from dataclasses import replace
 from typing import Any
 
-from ...common.doc_parser import read_external_docs, read_tag
-from ...common.parse_refs import RefResolver
-from ...common.parse_report import Reporter
-from ...common.parse_util import (
+from ...doc_parser import read_external_docs, read_tag
+from ...parse_refs import RefResolver
+from ...parse_report import Reporter
+from ...parse_util import (
     extensions_of,
     is_mapping,
     kind_of,
@@ -26,7 +26,7 @@ from ...common.parse_util import (
     read_str_tuple,
 )
 from ...jsonschema.schema_parser import read_schema
-from ..model import (
+from ..types import (
     CorrelationId,
     Message,
     MessageExample,

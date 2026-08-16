@@ -15,8 +15,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from ..common.doc_model import ApiDoc
-from ..jsonschema.schema_model import UNSET, Schema
+from ..doc_types import ApiDoc
+from ..jsonschema.schema_types import UNSET, Schema
 
 
 class OpenApiDialect(Enum):

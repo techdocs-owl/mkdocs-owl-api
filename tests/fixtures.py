@@ -18,14 +18,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from mkdocs_owl_api.common.doc_model import Contact, ExternalDocs, Info, License, Tag
-from mkdocs_owl_api.jsonschema.schema_model import (
+from mkdocs_owl_api.model.doc_types import Contact, ExternalDocs, Info, License, Tag
+from mkdocs_owl_api.model.jsonschema.schema_types import (
     ArrayConstraints,
     NumericConstraints,
     Schema,
     StringConstraints,
 )
-from mkdocs_owl_api.openapi.model import (
+from mkdocs_owl_api.model.openapi.types import (
     OpenApiDoc,
     Components,
     HttpMethod,
@@ -41,8 +41,8 @@ from mkdocs_owl_api.openapi.model import (
     SecuritySchemeType,
     Server,
 )
-from mkdocs_owl_api.jsonschema.model import JsonSchemaDialect, JsonSchemaDoc
-from mkdocs_owl_api.openapi.model import Header as ResponseHeader
+from mkdocs_owl_api.model.jsonschema.types import JsonSchemaDialect, JsonSchemaDoc
+from mkdocs_owl_api.model.openapi.types import Header as ResponseHeader
 
 _JSONS = Path(__file__).parent / "jsons"
 

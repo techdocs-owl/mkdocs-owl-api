@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from ..common.doc_model import ApiDoc, ExternalDocs, Tag
-from ..jsonschema.schema_model import Schema
+from ..doc_types import ApiDoc, ExternalDocs, Tag
+from ..jsonschema.schema_types import Schema
 
 
 class AsyncApiDialect(Enum):

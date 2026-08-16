@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import unittest
 
-from mkdocs_owl_api.jsonschema.model import JsonSchemaDialect, JsonSchemaDoc
-from mkdocs_owl_api.jsonschema.parser import parse_document
+from mkdocs_owl_api.model.jsonschema.types import JsonSchemaDialect, JsonSchemaDoc
+from mkdocs_owl_api.model.jsonschema.parser import parse_document
 
-from ..fixtures import SCHEMA_DOC_2020_12, SCHEMA_DOC_DRAFT04, expected_order
+from ...fixtures import SCHEMA_DOC_2020_12, SCHEMA_DOC_DRAFT04, expected_order
 
 DRAFT04_URI = "http://json-schema.org/draft-04/schema#"
 V2020_12_URI = "https://json-schema.org/draft/2020-12/schema"

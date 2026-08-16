@@ -3,15 +3,15 @@ from __future__ import annotations
 import unittest
 from dataclasses import replace
 
-from mkdocs_owl_api.asyncapi.model import (
+from mkdocs_owl_api.model.asyncapi.types import (
     AsyncApiDialect,
     OperationAction,
     SecurityRequirement,
     SecuritySchemeType,
 )
-from mkdocs_owl_api.asyncapi.parser import parse_document
+from mkdocs_owl_api.model.asyncapi.parser import parse_document
 
-from ..fixtures import ASYNCAPI_V2, ASYNCAPI_V3
+from ...fixtures import ASYNCAPI_V2, ASYNCAPI_V3
 
 
 class ParserTestCase(unittest.TestCase):

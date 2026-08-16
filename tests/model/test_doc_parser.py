@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import unittest
 
-from mkdocs_owl_api.common.doc_model import Contact, ExternalDocs, License, Tag
-from mkdocs_owl_api.common.doc_parser import (
+from mkdocs_owl_api.model.doc_types import Contact, ExternalDocs, License, Tag
+from mkdocs_owl_api.model.doc_parser import (
     read_contact,
     read_external_docs,
     read_info,
     read_license,
     read_tags,
 )
-from mkdocs_owl_api.common.parse_report import Reporter
+from mkdocs_owl_api.model.parse_report import Reporter
 
 
 def parse(reader, raw):

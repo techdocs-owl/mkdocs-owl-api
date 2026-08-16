@@ -32,7 +32,7 @@ from ..common.primitives.pills import (
     pill_purple,
     required_pill,
 )
-from .schema_model import UNSET, Schema, SchemaShape
+from ..model.jsonschema.schema_types import UNSET, Schema, SchemaShape
 
 #: Section a schema reference points into.
 _SCHEMAS = "schemas"

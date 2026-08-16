@@ -7,12 +7,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..common.doc_model import Info
-from ..common.parse_report import ParseResult, Reporter
-from ..common.parse_util import is_mapping, kind_of, read_mapping, read_str
-from .model import JsonSchemaDialect, JsonSchemaDoc
-from .schema_model import Schema
+from ..doc_types import Info
+from ..parse_report import ParseResult, Reporter
+from ..parse_util import is_mapping, kind_of, read_mapping, read_str
 from .schema_parser import read_schema
+from .schema_types import Schema
+from .types import JsonSchemaDialect, JsonSchemaDoc
 
 __all__ = ["parse_document"]
 

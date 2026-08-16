@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from mkdocs_owl_api.common.render import RenderContext
-from mkdocs_owl_api.jsonschema.schema_model import (
+from mkdocs_owl_api.model.jsonschema.schema_types import (
     NumericConstraints,
     Schema,
     StringConstraints,

@@ -2,7 +2,7 @@
 Document metadata common to every spec flavour.
 
 Knows nothing about schemas, paths or channels, so every format package can
-import it - including `jsonschema`, whose `schema_model` hangs `ExternalDocs`
+import it - including `jsonschema`, whose `schema_types` hangs `ExternalDocs`
 off a schema node.
 """
 

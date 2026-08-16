@@ -7,8 +7,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from ..common.doc_model import ApiDoc
-from .schema_model import Schema
+from ..doc_types import ApiDoc
+from .schema_types import Schema
 
 
 class JsonSchemaDialect(Enum):

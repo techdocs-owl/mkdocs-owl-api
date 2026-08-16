@@ -7,7 +7,7 @@ neighbours - plus the page-level extras the plugin resolved before rendering.
 
 from __future__ import annotations
 
-from .doc_model import ExternalDocs, Info
+from ..model.doc_types import ExternalDocs, Info
 from .primitives.markup import _demote_headings, _file_format, _table_cell
 
 ATTACHMENT_HEADERS = ("Attachment", "Description")

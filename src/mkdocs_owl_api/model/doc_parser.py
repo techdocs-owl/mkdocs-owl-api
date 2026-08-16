@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .doc_model import Contact, ExternalDocs, Info, License, Tag
+from .doc_types import Contact, ExternalDocs, Info, License, Tag
 from .parse_report import Reporter
 from .parse_util import extensions_of, is_mapping, kind_of, read_str
 

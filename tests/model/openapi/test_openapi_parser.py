@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import unittest
 
-from mkdocs_owl_api.openapi.model import (
+from mkdocs_owl_api.model.openapi.types import (
     HttpMethod,
     OpenApiDialect,
     ParameterLocation,
     SecurityRequirement,
     SecuritySchemeType,
 )
-from mkdocs_owl_api.openapi.parser import parse_document
+from mkdocs_owl_api.model.openapi.parser import parse_document
 
-from ..fixtures import API_V2, API_V30, API_V31, expected_api
+from ...fixtures import API_V2, API_V30, API_V31, expected_api
 
 
 class ParserTestCase(unittest.TestCase):

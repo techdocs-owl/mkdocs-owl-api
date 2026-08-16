@@ -8,7 +8,7 @@ from dataclasses import replace
 
 from ..common.primitives.markup import _anchor, _heading
 from ..common.render import MarkdownRenderer
-from .model import JsonSchemaDoc
+from ..model.jsonschema.types import JsonSchemaDoc
 from .schema_render import render_schema
 
 

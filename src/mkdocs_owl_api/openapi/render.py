@@ -33,7 +33,7 @@ from ..common.primitives.pills import (
     required_pill,
     scheme_pill,
 )
-from ..jsonschema.schema_model import UNSET, Schema
+from ..model.jsonschema.schema_types import UNSET, Schema
 from ..jsonschema.schema_render import (
     describe,
     format_type,
@@ -41,7 +41,7 @@ from ..jsonschema.schema_render import (
     property_table,
     render_schema,
 )
-from .model import (
+from ..model.openapi.types import (
     HttpMethod, OpenApiDoc, MediaType, Operation, Parameter, Response, Server,
 )
 

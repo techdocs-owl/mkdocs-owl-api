@@ -9,13 +9,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ...common.doc_parser import read_external_docs, read_info, read_tags
-from ...common.parse_report import ParseResult, Reporter
-from ...common.parse_util import extensions_of, is_mapping, kind_of, read_str
-from ..model import OpenApiDialect, OpenApiDoc
+from ...doc_parser import read_external_docs, read_info, read_tags
+from ...parse_report import ParseResult, Reporter
+from ...parse_util import extensions_of, is_mapping, kind_of, read_str
+from ..types import OpenApiDialect, OpenApiDoc
 from .dialect import Dialect, OpenApi3Dialect, Swagger2Dialect
 from .document import read_paths
-from ...common.parse_refs import RefResolver
+from ...parse_refs import RefResolver
 from .security import read_requirements
 
 __all__ = ["parse_document"]

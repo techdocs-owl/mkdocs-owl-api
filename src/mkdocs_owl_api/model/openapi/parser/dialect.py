@@ -12,8 +12,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol
 
-from ...common.parse_report import Reporter
-from ...common.parse_util import (
+from ...parse_report import Reporter
+from ...parse_util import (
     is_mapping,
     kind_of,
     read_bool,
@@ -21,9 +21,9 @@ from ...common.parse_util import (
     read_str,
     read_str_tuple,
 )
-from ...jsonschema.schema_model import UNSET, Schema
+from ...jsonschema.schema_types import UNSET, Schema
 from ...jsonschema.schema_parser import read_schema
-from ..model import (
+from ..types import (
     Components,
     MediaType,
     OpenApiDialect,
@@ -38,7 +38,7 @@ from .document import (
     read_response,
     read_servers,
 )
-from ...common.parse_refs import RefResolver
+from ...parse_refs import RefResolver
 from .security import read_v2_scheme, read_v3_scheme
 
 #: Schema keywords a 2.0 parameter or header carries directly, rather than

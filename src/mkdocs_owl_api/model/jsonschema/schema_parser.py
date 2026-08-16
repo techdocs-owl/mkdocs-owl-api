@@ -15,9 +15,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..common.doc_parser import read_external_docs
-from ..common.parse_report import Reporter
-from ..common.parse_util import (
+from ..doc_parser import read_external_docs
+from ..parse_report import Reporter
+from ..parse_util import (
     extensions_of,
     is_mapping,
     kind_of,
@@ -30,7 +30,7 @@ from ..common.parse_util import (
     read_str_map,
     read_str_tuple,
 )
-from .schema_model import (
+from .schema_types import (
     UNSET,
     ArrayConstraints,
     Discriminator,

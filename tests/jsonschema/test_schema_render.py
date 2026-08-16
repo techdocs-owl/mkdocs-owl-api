@@ -7,9 +7,9 @@ from __future__ import annotations
 import re
 import unittest
 
-from mkdocs_owl_api.common.parse_report import Reporter
-from mkdocs_owl_api.jsonschema.schema_model import SchemaShape
-from mkdocs_owl_api.jsonschema.schema_parser import read_schema
+from mkdocs_owl_api.model.parse_report import Reporter
+from mkdocs_owl_api.model.jsonschema.schema_types import SchemaShape
+from mkdocs_owl_api.model.jsonschema.schema_parser import read_schema
 from mkdocs_owl_api.jsonschema.schema_render import render_schema
 
 

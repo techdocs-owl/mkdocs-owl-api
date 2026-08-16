@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from ..options import PageOptions, ResolvedAttachment
-from .doc_model import ApiDoc
+from ..model.doc_types import ApiDoc
 from .doc_render import (
     attachment_rows,
     attachments_table,
