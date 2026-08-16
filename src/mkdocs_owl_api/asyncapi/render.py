@@ -34,8 +34,9 @@ from ..common.primitives.pills import (
 )
 from ..model.jsonschema.schema_types import Schema
 from ..jsonschema.schema_render import describe, format_type, render_schema
+from ..model.asyncapi.resolve import SecurityIterator
 from ..model.asyncapi.types import (
-    AsyncApiDoc, Channel, Message, Operation, OperationAction, Server,
+    AsyncApiDoc, Channel, Message, Operation, OperationAction, SecurityScheme, Server,
 )
 
 
@@ -139,19 +140,16 @@ class AsyncApiRenderer(MarkdownRenderer):
             blocks.append(f"- `{{{name}}}`{suffix}")
 
         if not self.options.hide_security:
-            for alternative in server.security:
-                for requirement in alternative:
-                    blocks.extend(self.security_scheme(requirement))
+            for scheme in SecurityIterator(server.security, self.doc):
+                blocks.extend(self.security_scheme(scheme))
 
         blocks.extend(_bindings(server.bindings, hide=self.options.hide_bindings))
         return blocks
 
-    def security_scheme(self, requirement) -> list[str]:
-        scheme = self.doc.components.security_schemes.get(requirement.scheme_name)
-        if scheme is None:
-            return [f"- **Security:** `{requirement.scheme_name}`"]
-
-        body = [f"**Type:** {scheme_pill(scheme.type.value)}", ""]
+    def security_scheme(self, scheme: SecurityScheme) -> list[str]:
+        body = []
+        if scheme.type is not None:
+            body.extend((f"**Type:** {scheme_pill(scheme.type.value)}", ""))
         for label, value in (("Name", scheme.parameter_name), ("In", scheme.location),
                              ("Scheme", scheme.scheme),
                              ("Bearer format", scheme.bearer_format),
@@ -159,17 +157,17 @@ class AsyncApiRenderer(MarkdownRenderer):
             if value:
                 body.append(f"**{label}:** `{value}`")
         if scheme.description:
-            if body[-1] != "":
+            if body and body[-1] != "":
                 body.append("")
             body.append(_demote_headings(scheme.description.strip(), levels=2))
-        if requirement.scopes:
-            if body[-1] != "":
+        if scheme.scopes:
+            if body and body[-1] != "":
                 body.append("")
-            body.append("**Scopes:** " + ", ".join(f"`{s}`" for s in requirement.scopes))
+            body.append("**Scopes:** " + ", ".join(f"`{s}`" for s in scheme.scopes))
 
+        title = scheme.name or (scheme.type.value if scheme.type else "")
         indented = "\n".join(("    " + line) if line else "" for line in body)
-        return [f'!!! note ":material-security: Security: {requirement.scheme_name}"'
-                f"\n{indented}"]
+        return [f'!!! note ":material-security: Security: {title}"\n{indented}']
 
     # -- operations ---------------------------------------------------------
 

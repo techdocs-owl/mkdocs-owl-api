@@ -29,7 +29,7 @@ techdocs-owl:
 ---
 ```
 
-Supports AsyncAPI 2.x/3.0, OpenAPI 3.x and JSON Schema draft-04 through 2020-12
+Supports AsyncAPI 2.x/3.x, OpenAPI 3.x and JSON Schema draft-04 through 2020-12
 (YAML or JSON), local paths or HTTP(S) URLs, recursive `$ref` resolution, and a
 bundled stylesheet (auto-injected, no `extra_css` setup needed).
 

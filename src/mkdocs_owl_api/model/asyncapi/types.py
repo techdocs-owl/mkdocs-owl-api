@@ -18,8 +18,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from ..doc_types import ApiDoc, ExternalDocs, Tag
+from ..doc_types import ApiDoc, ExternalDocs, Reference, Tag
 from ..jsonschema.schema_types import Schema
+
+_SECURITY_SCHEMES = "#/components/securitySchemes/"
 
 
 class AsyncApiDialect(Enum):
@@ -66,7 +68,9 @@ class SecuritySchemeType(Enum):
 
 @dataclass(frozen=True)
 class SecurityRequirement:
-    """One scheme a server or operation requires, with the scopes it needs."""
+    """
+    A 2.x `security` entry.
+    """
 
     scheme_name: str = ""
     scopes: tuple[str, ...] = ()
@@ -74,18 +78,21 @@ class SecurityRequirement:
 
 @dataclass(frozen=True)
 class SecurityScheme:
-    """A declared security scheme."""
-
     name: str = ""
-    type: SecuritySchemeType = SecuritySchemeType.USER_PASSWORD
+    type: SecuritySchemeType | None = None
     description: str | None = None
     parameter_name: str | None = None
     location: str | None = None
     scheme: str | None = None
     bearer_format: str | None = None
     open_id_connect_url: str | None = None
-    scopes: dict[str, str] = field(default_factory=dict)
+    scopes: tuple[str, ...] = ()
+    available_scopes: dict[str, str] = field(default_factory=dict)
     extensions: dict[str, Any] = field(default_factory=dict)
+
+
+#: A `security` entry including 2.x and 3.0 specs.
+SecurityEntry = SecurityRequirement | SecurityScheme | Reference
 
 
 @dataclass(frozen=True)
@@ -117,7 +124,7 @@ class Server:
     description: str | None = None
     variables: dict[str, ServerVariable] = field(default_factory=dict)
     tags: tuple[Tag, ...] = ()
-    security: tuple[tuple[SecurityRequirement, ...], ...] = ()
+    security: tuple[SecurityEntry, ...] = ()
     bindings: dict[str, Any] = field(default_factory=dict)
     extensions: dict[str, Any] = field(default_factory=dict)
 
@@ -230,8 +237,7 @@ class Operation:
     deprecated: bool = False
     tags: tuple[Tag, ...] = ()
     external_docs: ExternalDocs | None = None
-    security: tuple[tuple[SecurityRequirement, ...], ...] = ()
-    #: Names of the messages this operation applies to.
+    security: tuple[SecurityEntry, ...] = ()
     message_names: tuple[str, ...] = ()
     bindings: dict[str, Any] = field(default_factory=dict)
     trait_names: tuple[str, ...] = ()
@@ -267,3 +273,12 @@ class AsyncApiDoc(ApiDoc):
     @property
     def spec_version_key(self) -> str:
         return "asyncapi"
+
+    def security_scheme(self, reference: Reference) -> SecurityScheme | None:
+        pointer = reference.pointer
+        if not pointer.startswith(_SECURITY_SCHEMES):
+            return None
+        return self.security_scheme_named(pointer[len(_SECURITY_SCHEMES):])
+
+    def security_scheme_named(self, name: str) -> SecurityScheme | None:
+        return self.components.security_schemes.get(name)

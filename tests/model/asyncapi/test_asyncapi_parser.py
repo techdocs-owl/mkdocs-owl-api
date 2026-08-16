@@ -3,10 +3,13 @@ from __future__ import annotations
 import unittest
 from dataclasses import replace
 
+from mkdocs_owl_api.model.doc_types import Reference
+from mkdocs_owl_api.model.asyncapi.resolve import SecurityIterator
 from mkdocs_owl_api.model.asyncapi.types import (
     AsyncApiDialect,
     OperationAction,
     SecurityRequirement,
+    SecurityScheme,
     SecuritySchemeType,
 )
 from mkdocs_owl_api.model.asyncapi.parser import parse_document
@@ -170,16 +173,51 @@ class TestSecurity(ParserTestCase):
         doc = self.read(minimal_v2(servers={"prod": {
             "url": "mqtt://b", "security": [{"apiKey": ["read"]}]}}))
         self.assertEqual(doc.servers[0].security,
-                         ((SecurityRequirement("apiKey", ("read",)),),))
+                         (SecurityRequirement("apiKey", ("read",)),))
 
-    def test_v3_lists_the_schemes_themselves(self):
+    def test_v2_names_in_one_object_join_the_alternatives(self):
+        doc = self.read(minimal_v2(servers={"prod": {
+            "url": "mqtt://b", "security": [{"apiKey": [], "signature": []}]}}))
+        self.assertEqual(doc.servers[0].security,
+                         (SecurityRequirement("apiKey", ()),
+                          SecurityRequirement("signature", ())))
+
+    def test_v3_keeps_a_reference_as_written(self):
         doc = self.read(minimal_v3(
             servers={"prod": {"host": "b", "security": [
                 {"$ref": "#/components/securitySchemes/apiKey"}]}},
             components={"securitySchemes": {"apiKey": {"type": "userPassword"}}},
         ))
         self.assertEqual(doc.servers[0].security,
-                         ((SecurityRequirement("apiKey", ()),),))
+                         (Reference("#/components/securitySchemes/apiKey"),))
+
+    def test_v3_reads_an_inline_scheme(self):
+        doc = self.read(minimal_v3(servers={"prod": {"host": "b", "security": [
+            {"type": "httpApiKey", "name": "X-Api-Key", "in": "header"}]}}))
+        self.assertEqual(doc.servers[0].security, (SecurityScheme(
+            type=SecuritySchemeType.HTTP_API_KEY,
+            parameter_name="X-Api-Key", location="header"),))
+
+    def test_v3_reads_the_scopes_a_use_needs(self):
+        doc = self.read(minimal_v3(components={"securitySchemes": {"oauth": {
+            "type": "oauth2", "scopes": ["read:things"],
+            "flows": {"implicit": {"authorizationUrl": "https://a",
+                                   "availableScopes": {"read:things": "Read."}}}}}}))
+        scheme = doc.components.security_schemes["oauth"]
+        self.assertEqual(scheme.scopes, ("read:things",))
+        self.assertEqual(scheme.available_scopes, {"read:things": "Read."})
+
+    def test_operations_read_security_the_same_way(self):
+        doc = self.read(minimal_v3(
+            channels={"c": {"address": "a"}},
+            operations={"send": {"action": "send",
+                                 "channel": {"$ref": "#/channels/c"},
+                                 "security": [
+                                     {"$ref": "#/components/securitySchemes/apiKey"}]}},
+            components={"securitySchemes": {"apiKey": {"type": "userPassword"}}},
+        ))
+        self.assertEqual(doc.operations[0].security,
+                         (Reference("#/components/securitySchemes/apiKey"),))
 
     def test_scheme_types_beyond_http(self):
         doc = self.read(minimal_v3(components={"securitySchemes": {
@@ -192,6 +230,66 @@ class TestSecurity(ParserTestCase):
             "x": {"type": "magic"}}}))
         self.assertEqual(doc.components.security_schemes, {})
         self.assertIn("unknown security scheme type", warnings[0].message)
+
+
+class TestSecurityResolution(ParserTestCase):
+    """What `SecurityIterator` makes of each way an entry can be written."""
+
+    def resolve(self, doc):
+        return list(SecurityIterator(doc.servers[0].security, doc))
+
+    def test_a_reference_yields_the_declared_scheme(self):
+        doc = self.read(minimal_v3(
+            servers={"prod": {"host": "b", "security": [
+                {"$ref": "#/components/securitySchemes/apiKey"}]}},
+            components={"securitySchemes": {
+                "apiKey": {"type": "userPassword", "description": "Creds."}}},
+        ))
+        self.assertEqual(self.resolve(doc), [SecurityScheme(
+            name="apiKey", type=SecuritySchemeType.USER_PASSWORD,
+            description="Creds.")])
+
+    def test_a_2x_requirement_folds_its_scopes_onto_the_scheme(self):
+        doc = self.read(minimal_v2(
+            servers={"prod": {"url": "mqtt://b",
+                              "security": [{"oauth": ["read", "write"]}]}},
+            components={"securitySchemes": {"oauth": {"type": "oauth2"}}},
+        ))
+        self.assertEqual(self.resolve(doc), [SecurityScheme(
+            name="oauth", type=SecuritySchemeType.OAUTH2,
+            scopes=("read", "write"))])
+
+    def test_scopes_land_on_a_copy_not_the_declared_scheme(self):
+        doc = self.read(minimal_v2(
+            servers={"one": {"url": "mqtt://a", "security": [{"oauth": ["read"]}]},
+                     "two": {"url": "mqtt://b", "security": [{"oauth": ["write"]}]}},
+            components={"securitySchemes": {"oauth": {"type": "oauth2"}}},
+        ))
+        needed = [next(iter(SecurityIterator(server.security, doc))).scopes
+                  for server in doc.servers]
+        self.assertEqual(needed, [("read",), ("write",)])
+        self.assertEqual(doc.components.security_schemes["oauth"].scopes, ())
+
+    def test_a_reference_that_does_not_resolve_still_names_itself(self):
+        doc = self.read(minimal_v3(servers={"prod": {"host": "b", "security": [
+            {"$ref": "#/components/securitySchemes/absent"}]}}))
+        self.assertEqual(self.resolve(doc), [SecurityScheme(name="absent")])
+
+    def test_an_inline_scheme_passes_through(self):
+        doc = self.read(minimal_v3(servers={"prod": {"host": "b", "security": [
+            {"type": "http", "scheme": "bearer"}]}}))
+        self.assertEqual(self.resolve(doc), [SecurityScheme(
+            type=SecuritySchemeType.HTTP, scheme="bearer")])
+
+    def test_only_components_resolve(self):
+        doc = self.read(minimal_v3(
+            servers={"prod": {"host": "b"}},
+            components={"securitySchemes": {"apiKey": {"type": "userPassword"}}},
+        ))
+        self.assertIsNone(doc.security_scheme(Reference("#/servers/prod")))
+        self.assertEqual(
+            doc.security_scheme(Reference("#/components/securitySchemes/apiKey")),
+            doc.components.security_schemes["apiKey"])
 
 
 class TestParameters(ParserTestCase):
@@ -256,12 +354,15 @@ class TestParseDocument(ParserTestCase):
 
     def test_both_dialects_agree(self):
         v2, v3 = self.read(ASYNCAPI_V2), self.read(ASYNCAPI_V3)
-        # A 2.x document keys its channels by address and a 3.0 one by a name of
-        # its own; the address is the shared fact, so the key is normalised away.
-        normalise = lambda doc: replace(
-            doc, dialect=v3.dialect, spec_version="",
-            channels=tuple(replace(c, name="") for c in doc.channels),
-        )
+        def normalise(doc):
+            return replace(
+                doc, dialect=v3.dialect, spec_version="",
+                channels=tuple(replace(c, name="") for c in doc.channels),
+                servers=tuple(replace(s, security=tuple(
+                    SecurityIterator(s.security, doc)))
+                    for s in doc.servers),
+            )
+
         self.assertEqual(normalise(v2), normalise(v3))
 
     def test_channel_keys_really_do_differ(self):

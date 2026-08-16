@@ -156,7 +156,7 @@ See the [Petstore example](examples/petstore.md) for a live render.
 
 # AsyncAPI Configuration
 
-`type: asyncapi` accepts an AsyncAPI 2.x or 3.0 document. On top
+`type: asyncapi` accepts an AsyncAPI 2.x or 3.x document. On top
 of the [common options](#common-configuration), it adds a few keys for
 trimming sections that are specific to event-driven specs:
 

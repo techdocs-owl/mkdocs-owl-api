@@ -31,7 +31,6 @@ from ..types import (
     Message,
     MessageExample,
     Parameter,
-    SecurityRequirement,
     SecurityScheme,
     SecuritySchemeType,
     ServerVariable,
@@ -238,47 +237,13 @@ def read_parameters(
     }
 
 
-def read_security_requirements(
-    raw: Any, resolver: RefResolver, report: Reporter,
-) -> tuple[tuple[SecurityRequirement, ...], ...]:
-    """
-    A `security` list, in either form.
-
-    2.x lists `{scheme: [scopes]}` maps; 3.0 lists the scheme objects
-    themselves, usually as references. A `$ref` or a `type` key marks the
-    latter, so nothing needs to be told which is in use.
-    """
+def read_security_entries(raw: Any, report: Reporter) -> list[Any]:
     if raw is None:
-        return ()
+        return []
     if not isinstance(raw, list):
         report.warn(f"expected an array, found {kind_of(raw)}")
-        return ()
-
-    alternatives: list[tuple[SecurityRequirement, ...]] = []
-    for index, entry in enumerate(raw):
-        at = report.at(index)
-        if not is_mapping(entry):
-            at.warn(f"expected an object, found {kind_of(entry)}")
-            continue
-
-        if isinstance(entry.get("$ref"), str):
-            alternatives.append((SecurityRequirement(name_of(entry["$ref"]), ()),))
-            continue
-
-        resolved = resolver.resolve(entry, at)
-        if is_mapping(resolved) and "type" in resolved:
-            alternatives.append((
-                SecurityRequirement(read_str(resolved, "type", at) or "", ()),
-            ))
-            continue
-
-        required = tuple(
-            SecurityRequirement(str(name), read_str_tuple(entry, str(name), at))
-            for name in entry
-        )
-        if required:
-            alternatives.append(required)
-    return tuple(alternatives)
+        return []
+    return raw
 
 
 def read_security_scheme(
@@ -295,11 +260,11 @@ def read_security_scheme(
         return None
 
     flows = read_mapping(raw, "flows", report) or {}
-    scopes: dict[str, str] = {}
+    available: dict[str, str] = {}
     for flow_name, flow in flows.items():
         if is_mapping(flow):
-            scopes.update(read_str_map(flow, "availableScopes", report.at("flows", flow_name))
-                          or read_str_map(flow, "scopes", report.at("flows", flow_name)))
+            available.update(read_str_map(flow, "availableScopes", report.at("flows", flow_name))
+                             or read_str_map(flow, "scopes", report.at("flows", flow_name)))
 
     return SecurityScheme(
         name=name,
@@ -310,6 +275,7 @@ def read_security_scheme(
         scheme=read_str(raw, "scheme", report),
         bearer_format=read_str(raw, "bearerFormat", report),
         open_id_connect_url=read_str(raw, "openIdConnectUrl", report),
-        scopes=scopes,
+        scopes=read_str_tuple(raw, "scopes", report),
+        available_scopes=available,
         extensions=extensions_of(raw),
     )

@@ -1,5 +1,6 @@
 """
-Document metadata common to every spec flavour.
+What every spec flavour states the same way: a document's own metadata, and
+the reference form they all borrowed from each other.
 
 Knows nothing about schemas, paths or channels, so every format package can
 import it - including `jsonschema`, whose `schema_types` hangs `ExternalDocs`
@@ -10,6 +11,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
+
+
+@dataclass(frozen=True)
+class Reference:
+    """
+    A `$ref` object.
+    """
+
+    pointer: str = ""
+
+    @property
+    def name(self) -> str:
+        return self.pointer.rsplit("/", 1)[-1]
 
 
 @dataclass(frozen=True)

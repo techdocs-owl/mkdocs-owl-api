@@ -1,10 +1,5 @@
 """
-The four places 2.x and 3.0 describe the same thing differently.
-
-Servers state their address one way or the other; channels are keyed by address
-or by name; operations hang off a channel or sit in a map of their own; and the
-words for what an operation does are opposite. Everything else is shared
-traversal in `document.py`.
+Handling 2.x and 3.x dialects.
 """
 
 from __future__ import annotations
@@ -13,11 +8,13 @@ from collections.abc import Mapping
 from typing import Any, Protocol
 
 from ...doc_parser import read_external_docs
+from ...doc_types import Reference
 from ...parse_refs import RefResolver
 from ...parse_report import Reporter
 from ...parse_util import (
     extensions_of,
     is_mapping,
+    kind_of,
     read_bool,
     read_mapping,
     read_str,
@@ -31,6 +28,8 @@ from ..types import (
     Message,
     Operation,
     OperationAction,
+    SecurityEntry,
+    SecurityRequirement,
     Server,
 )
 from .document import (
@@ -41,7 +40,7 @@ from .document import (
     read_message,
     read_parameter,
     read_parameters,
-    read_security_requirements,
+    read_security_entries,
     read_security_scheme,
     read_server_variables,
     read_tags,
@@ -61,6 +60,7 @@ class Dialect(Protocol):
         self, channels: tuple[Channel, ...], report: Reporter,
     ) -> tuple[Operation, ...]: ...
     def components(self, report: Reporter) -> Components: ...
+    def security(self, raw: Any, report: Reporter) -> tuple[SecurityEntry, ...]: ...
 
 
 def _split_url(url: str, protocol: str | None) -> tuple[str, str | None, str | None]:
@@ -131,6 +131,22 @@ class V3Dialect(_Common):
 
     version = AsyncApiDialect.V3
 
+    def security(self, raw: Any, report: Reporter) -> tuple[SecurityEntry, ...]:
+        entries: list[SecurityEntry] = []
+        for index, entry in enumerate(read_security_entries(raw, report)):
+            at = report.at(index)
+            if not is_mapping(entry):
+                at.warn(f"expected an object, found {kind_of(entry)}")
+                continue
+            pointer = entry.get("$ref")
+            if isinstance(pointer, str):
+                entries.append(Reference(pointer))
+                continue
+            scheme = read_security_scheme("", entry, at)
+            if scheme is not None:
+                entries.append(scheme)
+        return tuple(entries)
+
     def servers(self, report: Reporter) -> tuple[Server, ...]:
         built: list[Server] = []
         for name, raw in (read_mapping(self._root, "servers", report) or {}).items():
@@ -149,9 +165,7 @@ class V3Dialect(_Common):
                 description=read_str(raw, "description", at),
                 variables=read_server_variables(raw, self._resolver, at),
                 tags=read_tags(raw.get("tags"), at.at("tags")),
-                security=read_security_requirements(
-                    raw.get("security"), self._resolver, at.at("security"),
-                ),
+                security=self.security(raw.get("security"), at.at("security")),
                 bindings=read_bindings(raw, at),
                 extensions=extensions_of(raw),
             ))
@@ -227,9 +241,7 @@ class V3Dialect(_Common):
                 external_docs=read_external_docs(
                     merged.get("externalDocs"), at.at("externalDocs"),
                 ),
-                security=read_security_requirements(
-                    merged.get("security"), self._resolver, at.at("security"),
-                ),
+                security=self.security(merged.get("security"), at.at("security")),
                 message_names=tuple(
                     name_of(entry["$ref"]) for entry in merged.get("messages") or []
                     if is_mapping(entry) and isinstance(entry.get("$ref"), str)
@@ -245,6 +257,19 @@ class V2Dialect(_Common):
     """AsyncAPI 2.x: channels keyed by address, operations hanging off them."""
 
     version = AsyncApiDialect.V2
+
+    def security(self, raw: Any, report: Reporter) -> tuple[SecurityEntry, ...]:
+        entries: list[SecurityEntry] = []
+        for index, entry in enumerate(read_security_entries(raw, report)):
+            at = report.at(index)
+            if not is_mapping(entry):
+                at.warn(f"expected an object, found {kind_of(entry)}")
+                continue
+            entries.extend(
+                SecurityRequirement(str(name), read_str_tuple(entry, str(name), at))
+                for name in entry
+            )
+        return tuple(entries)
 
     def servers(self, report: Reporter) -> tuple[Server, ...]:
         built: list[Server] = []
@@ -264,9 +289,7 @@ class V2Dialect(_Common):
                 description=read_str(raw, "description", at),
                 variables=read_server_variables(raw, self._resolver, at),
                 tags=read_tags(raw.get("tags"), at.at("tags")),
-                security=read_security_requirements(
-                    raw.get("security"), self._resolver, at.at("security"),
-                ),
+                security=self.security(raw.get("security"), at.at("security")),
                 bindings=read_bindings(raw, at),
                 extensions=extensions_of(raw),
             ))
@@ -361,9 +384,7 @@ class V2Dialect(_Common):
                     external_docs=read_external_docs(
                         merged.get("externalDocs"), at.at("externalDocs"),
                     ),
-                    security=read_security_requirements(
-                        merged.get("security"), self._resolver, at.at("security"),
-                    ),
+                    security=self.security(merged.get("security"), at.at("security")),
                     message_names=tuple(self._messages_of(
                         operation, source_action, at)),
                     bindings=read_bindings(merged, at),
