@@ -1,0 +1,125 @@
+/* Flattened property paths: ancestors dimmed, leaf bold, both in body text. */
+.techdocs-owl-api-path {
+  color: var(--md-default-fg-color--light, rgba(0, 0, 0, 0.54));
+  font-weight: 400;
+}
+
+.techdocs-owl-api-prop {
+  font-weight: 700;
+}
+
+/* Dimmed asides, e.g. the closed-object note on `additionalProperties: false`. */
+.techdocs-owl-api-note {
+  color: var(--md-default-fg-color--light, rgba(0, 0, 0, 0.54));
+  font-size: 0.9em;
+}
+
+.techdocs-owl-api-pill {
+  display: inline-block;
+  padding: 0.05em 0.55em;
+  margin: 0 0.15em 0.15em 0;
+  border-radius: 999px;
+  background: var(--md-default-fg-color--lightest);
+  color: var(--md-default-fg-color);
+  font-size: 0.78em;
+  font-family: var(--md-code-font-family, monospace);
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  vertical-align: 0.05em;
+  cursor: default;
+}
+
+.techdocs-owl-api-pill--action-send {
+  background: hsla(200, 80%, 55%, 0.12);
+  color: hsl(200, 80%, 55%);
+  border: 1px solid hsl(200, 80%, 55%);
+}
+.techdocs-owl-api-pill--action-receive {
+  background: hsla(160, 60%, 45%, 0.12);
+  color: hsl(160, 60%, 45%);
+  border: 1px solid hsl(160, 60%, 45%);
+}
+.techdocs-owl-api-pill--action-publish {
+  background: hsla(200, 80%, 55%, 0.12);
+  color: hsl(200, 80%, 55%);
+  border: 1px solid hsl(200, 80%, 55%);
+}
+.techdocs-owl-api-pill--action-subscribe {
+  background: hsla(160, 60%, 45%, 0.12);
+  color: hsl(160, 60%, 45%);
+  border: 1px solid hsl(160, 60%, 45%);
+}
+
+.techdocs-owl-api-pill--required {
+  background: hsla(350, 80%, 55%, 0.12);
+  color: hsl(350, 80%, 55%);
+  border: 1px solid hsl(350, 80%, 55%);
+}
+.techdocs-owl-api-pill--internal {
+  background: hsla(40, 90%, 50%, 0.12);
+  color: hsl(40, 90%, 50%);
+  border: 1px solid hsl(40, 90%, 50%);
+}
+.techdocs-owl-api-pill--deprecated {
+  background: hsla(0, 0%, 55%, 0.12);
+  color: hsl(0, 0%, 55%);
+  border: 1px solid hsl(0, 0%, 55%);
+  text-decoration: line-through;
+}
+
+.techdocs-owl-api-pill--protocol {
+  background: hsla(270, 60%, 60%, 0.12);
+  color: hsl(270, 60%, 60%);
+  border: 1px solid hsl(270, 60%, 60%);
+}
+.techdocs-owl-api-pill--contenttype {
+  background: hsla(30, 80%, 55%, 0.12);
+  color: hsl(30, 80%, 55%);
+  border: 1px solid hsl(30, 80%, 55%);
+}
+.techdocs-owl-api-pill--scheme {
+  background: hsla(180, 60%, 45%, 0.12);
+  color: hsl(180, 60%, 45%);
+  border: 1px solid hsl(180, 60%, 45%);
+}
+
+.techdocs-owl-api-pill--tag {
+  background: hsla(220, 50%, 55%, 0.12);
+  color: hsl(220, 50%, 55%);
+  border: 1px solid hsl(220, 50%, 55%);
+  cursor: help;
+}
+
+.techdocs-owl-api-pill--http-get {
+  background: hsla(140, 60%, 45%, 0.12);
+  color: hsl(140, 60%, 45%);
+  border: 1px solid hsl(140, 60%, 45%);
+}
+.techdocs-owl-api-pill--http-post {
+  background: hsla(210, 70%, 55%, 0.12);
+  color: hsl(210, 70%, 55%);
+  border: 1px solid hsl(210, 70%, 55%);
+}
+.techdocs-owl-api-pill--http-put {
+  background: hsla(30, 80%, 55%, 0.12);
+  color: hsl(30, 80%, 55%);
+  border: 1px solid hsl(30, 80%, 55%);
+}
+.techdocs-owl-api-pill--http-delete {
+  background: hsla(0, 70%, 55%, 0.12);
+  color: hsl(0, 70%, 55%);
+  border: 1px solid hsl(0, 70%, 55%);
+}
+.techdocs-owl-api-pill--http-patch {
+  background: hsla(280, 60%, 55%, 0.12);
+  color: hsl(280, 60%, 55%);
+  border: 1px solid hsl(280, 60%, 55%);
+}
+.techdocs-owl-api-pill--http-head,
+.techdocs-owl-api-pill--http-options,
+.techdocs-owl-api-pill--http-trace {
+  background: hsla(0, 0%, 55%, 0.12);
+  color: hsl(0, 0%, 55%);
+  border: 1px solid hsl(0, 0%, 55%);
+}
