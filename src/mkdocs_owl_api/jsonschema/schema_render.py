@@ -44,9 +44,6 @@ _MAX_ALTERNATIVE_DEPTH = 3
 #: Vendor extension marking a property as not for publication.
 _INTERNAL = "x-internal-only"
 
-PROPERTY_HEADERS = ("Name", "Description")
-
-
 _SCHEMA_SHAPE_PILLS = {
     SchemaShape.REF: pill_green,
     SchemaShape.OBJECT: pill_blue,
@@ -282,7 +279,7 @@ def render_property_row(row: PropertyRow) -> str:
 def property_table(rows: list[PropertyRow]) -> list[str]:
     if not rows:
         return []
-    return [_html_table(PROPERTY_HEADERS, [render_property_row(r) for r in rows])]
+    return [_html_table([render_property_row(r) for r in rows])]
 
 
 def _is_renderable(member: Schema) -> bool:

@@ -176,7 +176,7 @@ class OpenApiRenderer(MarkdownRenderer):
                 f"<td>{_md_to_html(format_type(schema), inline=True)}</td>"
                 f"<td>{_md_to_html(described) if described else '&mdash;'}</td></tr>"
             )
-        return [_html_table(PARAMETER_HEADERS, rows)] if rows else []
+        return [_html_table(rows, headers=PARAMETER_HEADERS)] if rows else []
 
     @staticmethod
     def _describe_with_overrides(schema: Schema, description, example) -> str:
@@ -239,7 +239,7 @@ class OpenApiRenderer(MarkdownRenderer):
                 f"<td>{_md_to_html(schema_md, inline=True) if schema_md else '&mdash;'}</td></tr>"
             )
 
-        blocks = ["**Responses**", _html_table(RESPONSE_HEADERS, rows)]
+        blocks = ["**Responses**", _html_table(rows, headers=RESPONSE_HEADERS)]
         for response in responses:
             blocks.extend(self.response_headers(response))
         return blocks
@@ -255,7 +255,7 @@ class OpenApiRenderer(MarkdownRenderer):
             for name, header in response.headers.items()
         ]
         return [f"*Headers for* `{response.status_code}`:",
-                _html_table(HEADER_HEADERS, rows)]
+                _html_table(rows, headers=HEADER_HEADERS)]
 
     def security(self, operation: Operation) -> list[str]:
         if self.options.hide_security:

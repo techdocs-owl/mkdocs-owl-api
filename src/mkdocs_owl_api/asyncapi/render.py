@@ -232,7 +232,7 @@ class AsyncApiRenderer(MarkdownRenderer):
                 f"<td>{_md_to_html(format_type(schema), inline=True)}</td>"
                 f"<td>{_md_to_html(described) if described else '&mdash;'}</td></tr>"
             )
-        return ["**Parameters**", _html_table(PARAMETER_HEADERS, rows)]
+        return ["**Parameters**", _html_table(rows, headers=PARAMETER_HEADERS)]
 
     # -- messages -----------------------------------------------------------
 

@@ -174,20 +174,21 @@ def _property_name_html(path: str) -> str:
     )
 
 
-def _html_table(headers: "Sequence[str]", rows: "Iterable[str]") -> str:
+def _html_table(rows: "Iterable[str]", *, headers: "Sequence[str] | None" = None) -> str:
     """
     Wrap pre-rendered `<tr>` cells in a table. Built as HTML rather than a
     markdown pipe table because the cells carry block content - constraint
     lists, admonition-free multi-line descriptions - that pipe tables cannot
     hold.
     """
-    out = [
-        "<table>",
-        "<thead>",
-        "<tr>" + "".join(f"<th>{h}</th>" for h in headers) + "</tr>",
-        "</thead>",
-        "<tbody>",
-    ]
+    out = ["<table>"]
+    if headers:
+        out += [
+            "<thead>",
+            "<tr>" + "".join(f"<th>{h}</th>" for h in headers) + "</tr>",
+            "</thead>",
+        ]
+    out.append("<tbody>")
     out.extend(rows)
     out.append("</tbody>")
     out.append("</table>")
