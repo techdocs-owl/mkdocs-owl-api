@@ -44,7 +44,7 @@ _MAX_ALTERNATIVE_DEPTH = 3
 #: Vendor extension marking a property as not for publication.
 _INTERNAL = "x-internal-only"
 
-PROPERTY_HEADERS = ("Name", "Type", "Description")
+PROPERTY_HEADERS = ("Name", "Description")
 
 
 _SCHEMA_SHAPE_PILLS = {
@@ -56,10 +56,10 @@ _SCHEMA_SHAPE_PILLS = {
 }
 
 def _type_name(schema: Schema) -> str:
-    # `format_type` falls back to a bare "object" for a schema that states no
-    # type of its own, which says nothing the shape pill has not said already.
+    # A schema stating no type of its own formats as a bare "object", which
+    # says nothing the shape pill has not said already.
     name = format_type(schema)
-    return "" if name == "object" else name
+    return "" if name == "`object`" else name
 
 
 def _schema_shape_text(schema: Schema) -> str:
@@ -68,10 +68,7 @@ def _schema_shape_text(schema: Schema) -> str:
     name = _type_name(schema)
     if not name:
         return shape_pill
-    # A reference is already a link, so it is not fenced as code.
-    if schema_shape is SchemaShape.REF:
-        return f"{shape_pill} {name}"
-    return f"{shape_pill} `{name}`"
+    return f"{shape_pill} {name}"
 
 
 def ref_link(schema: Schema) -> str:
@@ -90,7 +87,7 @@ def ref_link(schema: Schema) -> str:
 def format_type(schema: Schema | None) -> str:
     """A short, readable type expression."""
     if schema is None:
-        return "any"
+        return "`any`"
     if schema.is_ref():
         return ref_link(schema)
 
@@ -99,24 +96,27 @@ def format_type(schema: Schema | None) -> str:
     if len(schema.all_of) == 1 and not schema.types:
         return format_type(schema.all_of[0])
 
-    name = " | ".join(schema.types)
-    if not name:
-        name = _infer_enum_type(list(schema.enum)) or ""
-
-    if "object" in schema.types and schema.additional_properties is not None:
-        extra = schema.additional_properties
-        if isinstance(extra, Schema):
-            name = f"map of string → {format_type(extra)}"
-        elif extra is True:
-            name = "map of string → any"
+    extra = schema.additional_properties
+    # `additionalProperties: false` closes the object
+    if "object" in schema.types and extra is not None and extra is not False:
+        value = format_type(extra) if isinstance(extra, Schema) else "`any`"
+        body = f"[`string` : {value}]"
     elif "array" in schema.types:
-        name = f"array of {format_type(schema.items)}"
-    elif name and schema.format:
-        name = f"{name} ({schema.format})"
+        body = f"[{format_type(schema.items)}]"
+    else:
+        names = list(schema.types)
+        if not names:
+            inferred = _infer_enum_type(list(schema.enum))
+            names = inferred.split(" | ") if inferred else []
+        if not names:
+            names = ["object"]
+        if schema.format and len(names) == 1:
+            names = [f"{names[0]} ({schema.format})"]
+        if schema.nullable:
+            names.append("null")
+        return " | ".join(f"`{name}`" for name in names)
 
-    if not name:
-        name = "object"
-    return f"{name} | null" if schema.nullable else name
+    return f"{body} | `null`" if schema.nullable else body
 
 
 def closed_object_note(schema: Schema) -> str:
@@ -239,8 +239,7 @@ def property_rows(
                 rows.extend(walk_properties(child, f"{path}.", depth + 1))
             elif (items is not None and _is_expandable_object(items)
                     and depth < max_depth):
-                rows.append(PropertyRow(f"{path}[]", child, required,
-                                        "array of objects"))
+                rows.append(PropertyRow(f"{path}[]", child, required, "[`object`]"))
                 rows.extend(walk_properties(items, f"{path}[].", depth + 1))
             else:
                 rows.append(PropertyRow(path, child, required))
@@ -269,13 +268,13 @@ def render_property_row(row: PropertyRow) -> str:
         name_html += "<br>" + " ".join(flags)
 
     type_html = _md_to_html(row.type_override or format_type(row.schema), inline=True)
-    description_html = _md_to_html(describe(row.schema)) or "&mdash;"
+    description_html = _md_to_html(describe(row.schema))
 
     return (
         "<tr>\n"
         f"<td>{name_html}</td>\n"
-        f"<td>{type_html}</td>\n"
-        f"<td>{description_html}</td>\n"
+        f'<td><p class="techdocs-owl-api-type">{type_html}</p>\n'
+        f"{description_html}</td>\n"
         "</tr>"
     )
 
@@ -349,9 +348,7 @@ def _composition_alternatives_line(schema: Schema) -> list[str]:
     for members, label in _members(schema):
         shown = [m for m in members if _is_renderable(m)]
         if shown:
-            lines.append(f"**{label}:** " + " | ".join(
-                ref_link(m) if m.is_ref() else f"`{format_type(m)}`" for m in shown
-            ))
+            lines.append(f"**{label}:** " + " | ".join(format_type(m) for m in shown))
     return lines
 
 

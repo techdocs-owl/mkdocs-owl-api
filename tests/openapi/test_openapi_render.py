@@ -27,31 +27,31 @@ def render(spec, **options):
 
 class TestFormatType(unittest.TestCase):
     def test_scalar(self):
-        self.assertEqual(format_type(Schema(types=("string",))), "string")
+        self.assertEqual(format_type(Schema(types=("string",))), "`string`")
 
     def test_format_is_appended(self):
         self.assertEqual(format_type(Schema(types=("integer",), format="int64")),
-                         "integer (int64)")
+                         "`integer (int64)`")
 
     def test_union(self):
         self.assertEqual(format_type(Schema(types=("string", "integer"))),
-                         "string | integer")
+                         "`string` | `integer`")
 
     def test_nullable_reads_as_a_union(self):
         self.assertEqual(format_type(Schema(types=("string",), nullable=True)),
-                         "string | null")
+                         "`string` | `null`")
 
     def test_array(self):
         self.assertEqual(
             format_type(Schema(types=("array",), items=Schema(types=("string",)))),
-            "array of string",
+            "[`string`]",
         )
 
     def test_map(self):
         self.assertEqual(
             format_type(Schema(types=("object",),
                                additional_properties=Schema(types=("string",)))),
-            "map of string → string",
+            "[`string` : `string`]",
         )
 
     def test_reference_links_to_the_schema_section(self):
@@ -73,8 +73,8 @@ class TestFormatType(unittest.TestCase):
         self.assertEqual(format_type(schema), "[`Pet`](#schemas-pet)")
 
     def test_unknown_is_object(self):
-        self.assertEqual(format_type(Schema()), "object")
-        self.assertEqual(format_type(None), "any")
+        self.assertEqual(format_type(Schema()), "`object`")
+        self.assertEqual(format_type(None), "`any`")
 
 
 class TestDescribe(unittest.TestCase):
@@ -140,7 +140,7 @@ class TestPropertyRows(unittest.TestCase):
         )})
         rows = property_rows(schema, max_depth=2)
         self.assertEqual([r.path for r in rows], ["tags[]", "tags[].id"])
-        self.assertEqual(rows[0].type_override, "array of objects")
+        self.assertEqual(rows[0].type_override, "[`object`]")
 
     def test_a_reference_stays_a_single_row(self):
         schema = Schema(properties={"pet": Schema(ref="#/c/Pet", ref_name="Pet")})

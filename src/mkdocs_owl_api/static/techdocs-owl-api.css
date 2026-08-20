@@ -8,6 +8,14 @@
   font-weight: 700;
 }
 
+/* The type expression, which opens every property description cell. It sits
+   tight against the description below it. No font or colour override: the
+   expression is fenced as code and carries `$ref` links, both of which bring
+   their own. */
+.techdocs-owl-api-type {
+  margin: 0 0 0.35em;
+}
+
 /* Dimmed asides, e.g. the closed-object note on `additionalProperties: false`. */
 .techdocs-owl-api-note {
   color: var(--md-default-fg-color--light, rgba(0, 0, 0, 0.54));

@@ -186,14 +186,14 @@ class TestShapeDispatch(unittest.TestCase):
     def test_a_multi_typed_schema_names_every_type(self):
         out = render({"type": ["boolean", "string", "object"],
                       "properties": {"name": {"type": "string"}}})
-        self.assertIn("`boolean | string | object`", out)
+        self.assertIn("`boolean` | `string` | `object`", out)
         self.assertIn(">name</span>", out)
 
 
 class TestArraySection(unittest.TestCase):
     def test_an_array_names_what_it_holds(self):
         out = render({"type": "array", "items": {"type": "string"}})
-        self.assertIn("`array of string`", out)
+        self.assertIn("[`string`]", out)
 
     def test_an_array_of_objects_expands_its_items(self):
         out = render({"type": "array",

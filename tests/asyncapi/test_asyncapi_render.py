@@ -61,7 +61,7 @@ class TestPage(unittest.TestCase):
             with self.subTest(version=spec["asyncapi"]):
                 row = render(spec).split("<code>streetlightId</code>")[1]
                 self.assertIn(">required</span>", row.split("</tr>")[0])
-                self.assertIn("<td>string</td>", row.split("</tr>")[0])
+                self.assertIn("<td><code>string</code></td>", row.split("</tr>")[0])
 
     def test_tags_render_as_pills_alone(self):
         page = render({**ASYNCAPI_V3, "servers": {"production": {
