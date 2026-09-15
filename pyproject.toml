@@ -1,6 +1,6 @@
 [project]
 name = "mkdocs-owl-api"
-version = "0.2.0"
+version = "0.3.0"
 description = "MkDocs plugin from TechDocs Owl, renders AsyncAPI and OpenAPI specs into reference pages"
 readme = "README.md"
 license = "MIT"
